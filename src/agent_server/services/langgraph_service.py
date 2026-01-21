@@ -361,6 +361,9 @@ def create_run_config(
     # Merge server-provided fields (do NOT overwrite if client already set)
     cfg["configurable"].setdefault("thread_id", thread_id)
     cfg["configurable"].setdefault("run_id", run_id)
+    
+    # Increase default recursion limit to avoid errors on long reasoning chains
+    cfg.setdefault("recursion_limit", 100)
 
     # Add observability callbacks from various potential sources
     tracing_callbacks = get_tracing_callbacks()
