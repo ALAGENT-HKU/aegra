@@ -46,8 +46,8 @@ services:
       # 当 aegra 容器调用 Docker API 创建 backtestlite 容器时，需要使用宿主机路径
       # 通过环境变量配置，方便分发。运行 setup_environment.sh 自动配置
       # 如果未设置，使用容器内路径（/app/data），假设主机与容器共享相同路径
-      - HOST_BASE_DATA_DIR=/data/zqyuan/Chatbot_ALAGENT/data
-      - HOST_WORKSPACE_DIR=/data/zqyuan/Chatbot_ALAGENT/data/workspace
+      - HOST_BASE_DATA_DIR=/home/whlu/ALAGENT/deepagents-quickstarts/data
+      - HOST_WORKSPACE_DIR=/home/whlu/ALAGENT/deepagents-quickstarts/data/workspace
       - HOST_PERSIST_DIR=/data/zqyuan/Chatbot_ALAGENT/data/database
       - HOST_REPO_DIR=/data/zqyuan/Chatbot_ALAGENT
       # Docker 执行配置 - 用于 execute_backtest 工具
@@ -64,6 +64,9 @@ services:
       - LANGFUSE_HOST=http://202.45.128.237:7312
       # Redis - Connect to local Redis service on host (port 6380)
       - REDIS_URL=redis://host.docker.internal:6380/0
+      - LOG_TO_FILE=true
+      - LOG_FILE_PATH=/app/logs/aegra.log
+      - LOG_LEVEL=INFO
     depends_on:
       postgres:
         condition: service_healthy
@@ -78,6 +81,8 @@ services:
       - ../quantitative_strategy_agent:/app/quantitative_strategy_agent:ro
       # Mount data directories for persistence
       - ../data:/app/data # 持久化 workspace 和 memories
+      # Mount logs directory for persistence
+      - ./logs:/app/logs # 持久化日志文件
       # DinD: 挂载 Docker socket，允许容器内调用 Docker API
       - /var/run/docker.sock:/var/run/docker.sock
       - ${GCP_ADC_PATH:-/dev/null}:/app/gcp_credentials.json:ro
