@@ -28,3 +28,7 @@ htmlcov/
 # Pre-commit
 .pre-commit-cache/
 pipeline.log
+
+# Logs
+logs/
+*.log

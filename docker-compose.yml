@@ -64,6 +64,9 @@ services:
       - LANGFUSE_HOST=http://202.45.128.237:7312
       # Redis - Connect to local Redis service on host (port 6380)
       - REDIS_URL=redis://host.docker.internal:6380/0
+      # Email service - Resend
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-noreply@alagent.ai}
       - LOG_TO_FILE=true
       - LOG_FILE_PATH=/app/logs/aegra.log
       - LOG_LEVEL=INFO
