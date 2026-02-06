@@ -995,6 +995,53 @@ async def cancel_run_endpoint(
     )
 
 
+async def _archive_messages_from_checkpoint(
+    session: AsyncSession,
+    thread_id: str,
+    graph_id: str,
+    user: User,
+    run_config: dict,
+) -> None:
+    """
+    Archive messages from the current checkpoint to preserve full history.
+    
+    This is called after each run completes to ensure messages are archived
+    before SummarizationMiddleware can compress them in subsequent runs.
+    """
+    from ..services.message_archive_service import message_archive_service
+    from .threads import get_thread_state
+    
+    try:
+        # Get current checkpoint state
+        # IMPORTANT: Pass explicit values for subgraphs and checkpoint_ns
+        # to avoid FastAPI Query object issues when called internally
+        thread_state = await get_thread_state(
+            thread_id=thread_id,
+            subgraphs=False,
+            checkpoint_ns=None,
+            user=user,
+            session=session,
+        )
+        
+        messages = thread_state.values.get("messages", [])
+        if messages:
+            await message_archive_service.archive_messages(
+                session, thread_id, messages
+            )
+            logger.debug(
+                "archived_messages_after_run",
+                thread_id=thread_id,
+                message_count=len(messages),
+            )
+    except Exception as e:
+        # Don't fail the run if archiving fails, just log
+        logger.warning(
+            "failed_to_archive_messages",
+            thread_id=thread_id,
+            error=str(e),
+        )
+
+
 async def execute_run_async(
     run_id: str,
     thread_id: str,
@@ -1111,8 +1158,18 @@ async def execute_run_async(
                     f"No database session available to update thread {thread_id} status"
                 )
             await set_thread_status(session, thread_id, "interrupted")
+            
+            # Archive messages on interrupt for recovery
+            await _archive_messages_from_checkpoint(
+                session, thread_id, graph_id, user, run_config
+            )
 
         else:
+            # Archive messages BEFORE potential summarization in next run
+            await _archive_messages_from_checkpoint(
+                session, thread_id, graph_id, user, run_config
+            )
+            
             # Update with results - use standard status
             await update_run_status(
                 run_id, "success", output=final_output or {}, session=session

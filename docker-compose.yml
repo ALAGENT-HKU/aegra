@@ -29,7 +29,8 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/aegra # 容器内仍是 5432
       - AUTH_TYPE=custom
-      - DEBUG=true
+      # - DEBUG=true
+      - DEBUG=false
       - PORT=${PORT:-2024} # 服务监听 2024
       - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp_credentials.json
       # Database connection pool settings
@@ -48,8 +49,8 @@ services:
       # 如果未设置，使用容器内路径（/app/data），假设主机与容器共享相同路径
       - HOST_BASE_DATA_DIR=/home/whlu/ALAGENT/deepagents-quickstarts/data
       - HOST_WORKSPACE_DIR=/home/whlu/ALAGENT/deepagents-quickstarts/data/workspace
-      - HOST_PERSIST_DIR=/data/zqyuan/Chatbot_ALAGENT/data/database
-      - HOST_REPO_DIR=/data/zqyuan/Chatbot_ALAGENT
+      - HOST_PERSIST_DIR=/home/whlu/ALAGENT/deepagents-quickstarts/data/database
+      - HOST_REPO_DIR=/home/whlu/ALAGENT/deepagents-quickstarts
       # Docker 执行配置 - 用于 execute_backtest 工具
       - DOCKER_IMAGE=${DOCKER_IMAGE:-backtestlite-slave:latest}
       - DOCKER_TIMEOUT=${DOCKER_TIMEOUT:-300}
@@ -65,8 +66,8 @@ services:
       # Redis - Connect to local Redis service on host (port 6380)
       - REDIS_URL=redis://host.docker.internal:6380/0
       # Email service - Resend
-      - RESEND_API_KEY=${RESEND_API_KEY:-}
-      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-noreply@alagent.ai}
+      # - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - RESEND_FROM_EMAIL=noreply@alagentai.com
       - LOG_TO_FILE=true
       - LOG_FILE_PATH=/app/logs/aegra.log
       - LOG_LEVEL=INFO

@@ -172,6 +172,37 @@ class RunEvent(Base):
     )
 
 
+class MessageArchive(Base):
+    """Archive of complete message history to survive SummarizationMiddleware compression.
+    
+    This table stores every message before it can be summarized/compressed by
+    the middleware, allowing full history reconstruction for UI rendering.
+    """
+    __tablename__ = "message_archive"
+
+    id: Mapped[str] = mapped_column(
+        Text, primary_key=True, server_default=text("uuid_generate_v4()::text")
+    )
+    thread_id: Mapped[str] = mapped_column(
+        Text, ForeignKey("thread.thread_id", ondelete="CASCADE"), nullable=False
+    )
+    message_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    message_id: Mapped[str | None] = mapped_column(Text)
+    message_type: Mapped[str] = mapped_column(Text, nullable=False)  # human, ai, tool, system
+    content: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    tool_calls: Mapped[dict | None] = mapped_column(JSONB)
+    tool_call_id: Mapped[str | None] = mapped_column(Text)
+    metadata_json: Mapped[dict | None] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=text("now()")
+    )
+
+    __table_args__ = (
+        Index("idx_message_archive_thread", "thread_id"),
+        Index("idx_message_archive_thread_index", "thread_id", "message_index", unique=True),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Session factory
 # ---------------------------------------------------------------------------
