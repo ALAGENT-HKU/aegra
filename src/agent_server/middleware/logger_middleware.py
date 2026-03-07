@@ -2,6 +2,7 @@ import os
 import time
 from typing import TypedDict
 
+import jwt
 import structlog
 from asgi_correlation_id import correlation_id
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -28,6 +29,34 @@ class StructLogMiddleware:
 
         structlog.contextvars.clear_contextvars()
         structlog.contextvars.bind_contextvars(request_id=correlation_id.get())
+
+        # Extract thread_id from URL path (e.g., /threads/{thread_id}/runs/stream)
+        path = scope.get("path", "")
+        if "/threads/" in path:
+            parts = path.split("/")
+            try:
+                tid_idx = parts.index("threads") + 1
+                if tid_idx < len(parts):
+                    structlog.contextvars.bind_contextvars(thread_id=parts[tid_idx], session_id=parts[tid_idx])
+            except (ValueError, IndexError):
+                pass
+
+        # Extract user_id from JWT Authorization header (best-effort, no-fail)
+        try:
+            headers = dict(scope.get("headers", []))
+            auth_header = headers.get(b"authorization", b"").decode()
+            if auth_header.startswith("Bearer "):
+                token = auth_header[7:]
+                payload = jwt.decode(
+                    token,
+                    os.getenv("JWT_SECRET", "your-super-secret-jwt-key-change-in-production"),
+                    algorithms=[os.getenv("JWT_ALGORITHM", "HS256")],
+                )
+                uid = payload.get("sub")
+                if uid:
+                    structlog.contextvars.bind_contextvars(user_id=uid)
+        except Exception:
+            pass  # Never fail request logging due to user_id extraction
 
         info = AccessInfo()
 
