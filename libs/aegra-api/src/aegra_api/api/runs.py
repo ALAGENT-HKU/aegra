@@ -407,10 +407,9 @@ async def create_and_stream_run(
         stream_mode = config["stream_mode"]
 
     # Stream immediately from broker (which will also include replay of any early events)
-    # Default to cancel on disconnect - this matches user expectation that clicking
-    # "Cancel" in the frontend will stop the backend task. Users can explicitly
-    # set on_disconnect="continue" if they want the task to continue.
-    cancel_on_disconnect = (request.on_disconnect or "cancel").lower() == "cancel"
+    # Default to continue on disconnect - run keeps executing when client disconnects.
+    # Users can explicitly set on_disconnect="cancel" to stop the backend task.
+    cancel_on_disconnect = (request.on_disconnect or "continue").lower() == "cancel"
 
     return StreamingResponse(
         streaming_service.stream_run_execution(
@@ -462,6 +461,53 @@ async def get_run(
     )
     # Convert to Pydantic
     return Run.model_validate(run_orm)
+
+
+@router.get("/threads/{thread_id}/runs/{run_id}/events", responses={**NOT_FOUND})
+async def get_run_events(
+    thread_id: str,
+    run_id: str,
+    event_type: str | None = Query(None, description="Filter by event type (e.g., 'custom')"),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[dict]:
+    """Get stored events for a run - useful for history recovery.
+
+    Returns events in sequence order (oldest first).
+    Use event_type='custom' to get only custom events like pipeline_progress.
+    """
+    # Verify run belongs to user
+    run_orm = await session.scalar(
+        select(RunORM).where(
+            RunORM.run_id == str(run_id),
+            RunORM.thread_id == thread_id,
+            RunORM.user_id == user.identity,
+        )
+    )
+    if not run_orm:
+        raise HTTPException(404, f"Run '{run_id}' not found")
+
+    from aegra_api.services.event_store import event_store
+
+    stored_events = await event_store.get_all_events(run_id)
+
+    if event_type:
+        stored_events = [e for e in stored_events if e.event == event_type]
+
+    logger.info(
+        f"[get_run_events] returning {len(stored_events)} events "
+        f"(type_filter={event_type}) for run_id={run_id}"
+    )
+
+    return [
+        {
+            "id": e.id,
+            "event": e.event,
+            "data": e.data,
+            "timestamp": e.timestamp.isoformat() if e.timestamp else None,
+        }
+        for e in stored_events
+    ]
 
 
 @router.get("/threads/{thread_id}/runs", response_model=list[Run])
@@ -879,6 +925,49 @@ async def cancel_run_endpoint(
     return Run.model_validate(run_orm)
 
 
+async def _archive_messages_from_checkpoint(
+    session: AsyncSession,
+    thread_id: str,
+    graph_id: str,
+    user: User,
+    run_config: dict,
+) -> None:
+    """Archive messages from the current checkpoint to preserve full history.
+
+    This is called after each run completes to ensure messages are archived
+    before SummarizationMiddleware can compress them in subsequent runs.
+    """
+    from aegra_api.services.message_archive_service import message_archive_service
+    from aegra_api.api.threads import get_thread_state
+
+    try:
+        thread_state = await get_thread_state(
+            thread_id=thread_id,
+            subgraphs=False,
+            checkpoint_ns=None,
+            user=user,
+            session=session,
+        )
+
+        messages = thread_state.values.get("messages", [])
+        if messages:
+            await message_archive_service.archive_messages(
+                session, thread_id, messages
+            )
+            logger.debug(
+                "archived_messages_after_run",
+                thread_id=thread_id,
+                message_count=len(messages),
+            )
+    except Exception as e:
+        # Don't fail the run if archiving fails, just log
+        logger.warning(
+            "failed_to_archive_messages",
+            thread_id=thread_id,
+            error=str(e),
+        )
+
+
 async def execute_run_async(
     run_id: str,
     thread_id: str,
@@ -1008,7 +1097,17 @@ async def execute_run_async(
                 raise RuntimeError(f"No database session available to update thread {thread_id} status")
             await set_thread_status(session, thread_id, "interrupted")
 
+            # Archive messages on interrupt for recovery
+            await _archive_messages_from_checkpoint(
+                session, thread_id, graph_id, user, run_config
+            )
+
         else:
+            # Archive messages BEFORE potential summarization in next run
+            await _archive_messages_from_checkpoint(
+                session, thread_id, graph_id, user, run_config
+            )
+
             # Update with results - use standard status
             await update_run_status(run_id, "success", output=final_output or {}, session=session)
             # Mark thread back to idle

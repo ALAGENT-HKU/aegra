@@ -1,0 +1,113 @@
+services:
+  # PostgreSQL database for LangGraph and metadata
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: aegra
+    ports:
+      - "5442:5432" # 外部端口 5442，避免与 Langfuse 冲突
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d aegra" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Aegra Server
+  aegra:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile
+    user: "0:0" # Run as root to install dependencies
+    ports:
+      - "0.0.0.0:${PORT:-2024}:${PORT:-2024}" # 绑定到所有网络接口，内网可访问
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # 允许容器访问主机服务
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/aegra # 容器内仍是 5432
+      - AUTH_TYPE=custom
+      # - DEBUG=true
+      - DEBUG=false
+      - PORT=${PORT:-2024} # 服务监听 2024
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp_credentials.json
+      # Database connection pool settings
+      - SA_POOL_SIZE=10 # SQLAlchemy pool size (increased from default 2)
+      - SA_MAX_OVERFLOW=5 # Allow 5 additional connections when pool is exhausted
+      - LG_POOL_SIZE=20 # LangGraph pool size (increased from default 6)
+      - LG_MIN_POOL_SIZE=5 # LangGraph minimum pool size (increased from default 1)
+      # Data directories - 容器内路径
+      - BASE_DATA_DIR=/app/data
+      - WORKSPACE_DIR=/app/data/workspace
+      - MEMORIES_DIR=/app/data/memories
+      - PERSIST_DIR=/app/data/database
+      # DinD (Docker-in-Docker) 宿主机路径 - 用于 Docker 卷挂载
+      # 当 aegra 容器调用 Docker API 创建 backtestlite 容器时，需要使用宿主机路径
+      # 通过环境变量配置，方便分发。运行 setup_environment.sh 自动配置
+      # 如果未设置，使用容器内路径（/app/data），假设主机与容器共享相同路径
+      - HOST_BASE_DATA_DIR=/home/whlu/ALAGENT/deepagents-quickstarts/data
+      - HOST_WORKSPACE_DIR=/home/whlu/ALAGENT/deepagents-quickstarts/data/workspace
+      - HOST_PERSIST_DIR=/home/whlu/ALAGENT/deepagents-quickstarts/data/database
+      - HOST_REPO_DIR=/home/whlu/ALAGENT/deepagents-quickstarts
+      # Docker 执行配置 - 用于 execute_backtest 工具
+      - DOCKER_IMAGE=${DOCKER_IMAGE:-backtestlite-slave:latest}
+      - DOCKER_TIMEOUT=${DOCKER_TIMEOUT:-300}
+      - DOCKER_MEMORY_LIMIT=${DOCKER_MEMORY_LIMIT:-4g}
+      # User Database - 连接到内网 IP 的 PostgreSQL (端口 5435)
+      - USER_DATABASE_URL=postgresql+asyncpg://alagent:alagent@202.45.128.237:5435/alagent
+      # LangGraph isolated event loops - DISABLED after full async refactor
+      # All code is now async, no sync blocking operations remain
+      # Keeping this true would serialize runs and prevent true concurrency
+      - BG_JOB_ISOLATED_LOOPS=false
+      # Langfuse - 连接到内网 IP 的 Langfuse 服务
+      - LANGFUSE_HOST=http://202.45.128.237:7312
+      # Redis - Connect to local Redis service on host (port 6380)
+      - REDIS_URL=redis://host.docker.internal:6380/0
+      # Email service - Resend
+      # - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - RESEND_FROM_EMAIL=noreply@alagentai.com
+      - LOG_TO_FILE=true
+      - LOG_FILE_PATH=/app/logs/aegra.log
+      - LOG_LEVEL=INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./aegra.docker.json:/app/aegra.json:ro # 使用 Docker 专用配置
+      - ./graphs:/app/graphs:ro
+      - ./src:/app/src:ro # for hot reload support of server
+      - ./auth.py:/app/auth.py:ro
+      - ./.env:/app/.env:ro
+      - ./alembic:/app/alembic:ro # for migrations
+      # Mount quantitative_strategy_agent for graph loading
+      - ../quantitative_strategy_agent:/app/quantitative_strategy_agent:ro
+      # Mount data directories for persistence
+      - ../data:/app/data # 持久化 workspace 和 memories
+      # Mount logs directory for persistence
+      - ./logs:/app/logs # 持久化日志文件
+      # DinD: 挂载 Docker socket，允许容器内调用 Docker API
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${GCP_ADC_PATH:-/dev/null}:/app/gcp_credentials.json:ro
+    command: >
+      sh -c "
+        echo 'Running database migrations...' &&
+        alembic upgrade head &&
+        echo 'Starting Aegra server...' &&
+        uvicorn src.agent_server.main:app --host 0.0.0.0 --port $${PORT:-2024} --reload --reload-dir /app/src --reload-dir /app/graphs --reload-dir /app/quantitative_strategy_agent
+      "
+
+  # Redis (optional - for advanced queuing in future phases)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    profiles:
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -621,6 +621,9 @@ def create_run_config(
     # Ensure the root run ID is set to match so that astream_events recognizes it
     cfg.setdefault("run_id", run_id)
 
+    # Increase default recursion limit to avoid errors on long reasoning chains
+    cfg.setdefault("recursion_limit", 100)
+
     # Add observability callbacks from various potential sources
     tracing_callbacks = get_tracing_callbacks()
     if tracing_callbacks:

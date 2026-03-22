@@ -1,5 +1,6 @@
 import logging
 import logging.config
+import os
 from typing import Any
 
 import structlog
@@ -15,10 +16,22 @@ def get_logging_config() -> dict[str, Any]:
 
     This configuration solves the multiprocessing "pickling" error on Windows
     by using string references for streams (e.g., "ext://sys.stdout").
+
+    File logging is configurable via environment variables:
+    - LOG_TO_FILE: Enable file logging (true/false, default: false)
+    - LOG_FILE_PATH: Path to log file (default: logs/aegra.log)
+    - LOG_FILE_MAX_BYTES: Max file size before rotation (default: 10MB)
+    - LOG_FILE_BACKUP_COUNT: Number of backup files to keep (default: 5)
     """
     # Determine log level from environment or set a default
     env_mode = settings.app.ENV_MODE
     log_level = settings.app.LOG_LEVEL
+
+    # File logging configuration
+    log_to_file = os.getenv("LOG_TO_FILE", "false").lower() == "true"
+    log_file_path = os.getenv("LOG_FILE_PATH", "logs/aegra.log")
+    log_file_max_bytes = int(os.getenv("LOG_FILE_MAX_BYTES", str(10 * 1024 * 1024)))  # 10MB
+    log_file_backup_count = int(os.getenv("LOG_FILE_BACKUP_COUNT", "5"))
 
     # These processors will be used by BOTH structlog and standard logging
     # to ensure consistent output for all logs.
@@ -52,7 +65,10 @@ def get_logging_config() -> dict[str, Any]:
     else:
         final_renderer = structlog.processors.JSONRenderer()
 
-    return {
+    # File logs always use JSON format for easier parsing
+    file_renderer = structlog.processors.JSONRenderer()
+
+    config: dict[str, Any] = {
         "version": 1,
         "disable_existing_loggers": False,  # Important for library logging
         "formatters": {
@@ -62,6 +78,11 @@ def get_logging_config() -> dict[str, Any]:
                 # The final processor is the renderer.
                 "processor": final_renderer,
                 # These processors are run on ANY log record, including those from Uvicorn.
+                "foreign_pre_chain": shared_processors,
+            },
+            "file": {
+                "()": "structlog.stdlib.ProcessorFormatter",
+                "processor": file_renderer,
                 "foreign_pre_chain": shared_processors,
             },
         },
@@ -94,6 +115,25 @@ def get_logging_config() -> dict[str, Any]:
             },
         },
     }
+
+    # Add file handler if enabled
+    if log_to_file:
+        log_dir = os.path.dirname(log_file_path)
+        if log_dir and not os.path.exists(log_dir):
+            os.makedirs(log_dir, exist_ok=True)
+
+        config["handlers"]["file"] = {
+            "level": log_level,
+            "class": "logging.handlers.RotatingFileHandler",
+            "formatter": "file",
+            "filename": log_file_path,
+            "maxBytes": log_file_max_bytes,
+            "backupCount": log_file_backup_count,
+            "encoding": "utf-8",
+        }
+        config["loggers"][""]["handlers"].append("file")
+
+    return config
 
 
 def setup_logging() -> None:

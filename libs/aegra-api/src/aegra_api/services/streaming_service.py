@@ -157,11 +157,16 @@ class StreamingService:
                 {"debug": event_payload},
             )
         elif stream_mode_label == "custom":
+            # Custom events from get_stream_writer() - used for pipeline progress, etc.
             await store_sse_event(
                 run_id,
                 event_id,
                 "custom",
-                {"chunk": event_payload},
+                {
+                    "type": "custom_event",
+                    "payload": event_payload,
+                    "node_path": node_path,
+                },
             )
         elif stream_mode_label == "metadata":
             await store_sse_event(

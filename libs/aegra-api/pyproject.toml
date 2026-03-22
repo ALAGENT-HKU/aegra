@@ -44,6 +44,9 @@ dependencies = [
     # Utils
     "structlog>=25.4.0",
     "asgi-correlation-id>=4.3.4",
+
+    # Auth (JWT)
+    "python-jose[cryptography]>=3.3.0",
 ]
 
 [project.urls]

@@ -37,6 +37,8 @@ services:
       - ./libs/aegra-api/src:/app/src:ro  # Mount full src for PYTHONPATH to work
       - ./libs/aegra-api/alembic:/app/alembic:ro # for migrations
       - ./.env:/app/.env:ro
+      - ./auth.py:/app/auth.py:ro  # Custom auth handler
+      - ./logs:/app/logs  # Log files (when LOG_TO_FILE=true)
     command: >
       sh -c "
         echo 'Running database migrations...' &&

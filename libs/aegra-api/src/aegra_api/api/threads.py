@@ -382,6 +382,171 @@ async def get_thread_state(
         raise HTTPException(500, f"Error retrieving thread state: {str(e)}") from e
 
 
+@router.get("/threads/{thread_id}/full-history", responses={**NOT_FOUND})
+async def get_full_history(
+    thread_id: str,
+    merge_checkpoint: bool = Query(True, description="Merge archived history with checkpoint state"),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """Get full message history for a thread.
+
+    This returns archived messages that may have been compressed by
+    SummarizationMiddleware in the LangGraph checkpoint.
+
+    Args:
+        thread_id: Thread identifier
+        merge_checkpoint: If True, merge archived history with current checkpoint
+                         to include any messages added after last archive
+
+    Returns:
+        Dict with complete message history in values.messages format
+    """
+    from aegra_api.services.message_archive_service import message_archive_service
+
+    # Verify thread ownership
+    stmt = select(ThreadORM).where(
+        ThreadORM.thread_id == thread_id,
+        ThreadORM.user_id == user.identity,
+    )
+    thread = await session.scalar(stmt)
+    if not thread:
+        raise HTTPException(404, f"Thread '{thread_id}' not found")
+
+    # Get archived history
+    archived_messages = await message_archive_service.get_full_history(
+        session, thread_id
+    )
+
+    if not merge_checkpoint:
+        return {
+            "values": {"messages": archived_messages},
+            "source": "archive",
+            "archived_count": len(archived_messages),
+            "checkpoint_count": 0,
+            "merged_count": len(archived_messages),
+        }
+
+    # Get current checkpoint state
+    checkpoint_messages = []
+    try:
+        thread_state = await get_thread_state(
+            thread_id=thread_id,
+            subgraphs=False,
+            checkpoint_ns=None,
+            user=user,
+            session=session,
+        )
+        checkpoint_messages = thread_state.values.get("messages", [])
+    except HTTPException as e:
+        if e.status_code != 404:
+            raise
+    except Exception as e:
+        logger.warning("Failed to get checkpoint state for merge: %s", str(e))
+
+    # If no archive exists, return checkpoint only
+    if not archived_messages:
+        return {
+            "values": {"messages": checkpoint_messages},
+            "source": "checkpoint",
+            "archived_count": 0,
+            "checkpoint_count": len(checkpoint_messages),
+            "merged_count": len(checkpoint_messages),
+        }
+
+    # Merge: archived history + any new messages from checkpoint
+    merged_messages = _merge_histories(archived_messages, checkpoint_messages)
+
+    logger.debug(
+        "full-history GET: thread_id=%s archived=%d checkpoint=%d merged=%d",
+        thread_id,
+        len(archived_messages),
+        len(checkpoint_messages),
+        len(merged_messages),
+    )
+
+    return {
+        "values": {"messages": merged_messages},
+        "source": "merged",
+        "archived_count": len(archived_messages),
+        "checkpoint_count": len(checkpoint_messages),
+        "merged_count": len(merged_messages),
+    }
+
+
+def _to_dict(msg: Any) -> dict:
+    """Convert a message to dict, handling Pydantic models and dicts."""
+    if isinstance(msg, dict):
+        return msg
+    if hasattr(msg, "model_dump"):
+        return msg.model_dump()
+    if hasattr(msg, "dict"):
+        return msg.dict()
+    return {
+        "id": getattr(msg, "id", None),
+        "type": getattr(msg, "type", "unknown"),
+        "content": getattr(msg, "content", ""),
+    }
+
+
+def _merge_histories(
+    archived: list[dict],
+    checkpoint: list[Any],
+) -> list[dict]:
+    """Merge archived and checkpoint histories.
+
+    Strategy:
+    1. Start with archived history (filtering out any summary messages)
+    2. Find messages in checkpoint that aren't in archive (after summarization)
+    3. Append only truly new messages (excluding summary messages)
+    """
+    if not archived:
+        return [_to_dict(m) for m in checkpoint if not _is_summary_message(_to_dict(m))]
+    if not checkpoint:
+        return [m for m in archived if not _is_summary_message(m)]
+
+    filtered_archived = [m for m in archived if not _is_summary_message(m)]
+    archived_ids = {m.get("id") for m in filtered_archived if m.get("id")}
+
+    new_messages = []
+    for msg in checkpoint:
+        msg_dict = _to_dict(msg)
+        msg_id = msg_dict.get("id")
+
+        if _is_summary_message(msg_dict):
+            continue
+
+        if msg_id and msg_id not in archived_ids:
+            new_messages.append(msg_dict)
+        elif not msg_id:
+            if not _message_exists_in_archive(msg_dict, filtered_archived):
+                new_messages.append(msg_dict)
+
+    return filtered_archived + new_messages
+
+
+def _is_summary_message(msg: dict) -> bool:
+    """Check if message is a summary from SummarizationMiddleware."""
+    content = msg.get("content", "")
+    if isinstance(content, str):
+        return content.startswith("Here is a summary of the conversation")
+    if isinstance(content, dict):
+        text_val = content.get("text", "")
+        return text_val.startswith("Here is a summary of the conversation")
+    return False
+
+
+def _message_exists_in_archive(msg: dict, archived: list[dict]) -> bool:
+    """Check if message exists in archive by content comparison."""
+    msg_content = msg.get("content")
+    msg_type = msg.get("type")
+
+    for arch_msg in archived:
+        if arch_msg.get("type") == msg_type and arch_msg.get("content") == msg_content:
+            return True
+    return False
+
+
 @router.post("/threads/{thread_id}/state", responses={**NOT_FOUND})
 async def update_thread_state(
     thread_id: str,
