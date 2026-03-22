@@ -79,6 +79,11 @@ qsa = [
     "redis[hiredis]>=5.0.0",
     "email-validator>=2.0.0",
     "psycopg2-binary>=2.9.11",
+    # Quantitative analysis
+    "pandas-ta>=0.4.0",
+    "statsmodels>=0.14.0",
+    "arch>=7.0.0",
+    "pmdarima>=2.0.0",
 ]
 
 [project.urls]
