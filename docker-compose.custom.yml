@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: aegra
     ports:
-      - "5442:5432" # 外部端口 5442，避免与 Langfuse 冲突
+      - "${PG_PORT:-5442}:5432" # 外部端口，可通过 PG_PORT 修改避免冲突
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -96,7 +96,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     profiles:
