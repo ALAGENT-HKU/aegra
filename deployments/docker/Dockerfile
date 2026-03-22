@@ -19,7 +19,7 @@ RUN addgroup --system app && adduser --system --ingroup app app
 FROM base AS builder
 
 # Retrieve the uv binary directly from the official image.
-COPY --from=ghcr.io/astral-sh/uv:0.9.26 /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.10.12 /uv /bin/uv
 
 # Install system build dependencies required for compiling Python extensions.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -31,10 +31,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY libs/aegra-api/pyproject.toml libs/aegra-api/README.md ./
 COPY uv.lock ./
 
-# Install dependencies from lockfile (includes dev deps for example agents).
-RUN uv export --frozen --no-emit-project --format=requirements-txt > requirements.txt && \
+# Install dependencies from lockfile (includes dev deps for example agents + QSA deps).
+# --extra qsa: include quantitative_strategy_agent optional dependencies (deepagents, langchain, etc.)
+RUN uv export --frozen --no-emit-project --extra qsa --format=requirements-txt > requirements.txt && \
     uv pip install --system --compile-bytecode -r requirements.txt && \
     rm requirements.txt
+
+# Export constraints file for runtime safety (prevents version drift from any runtime pip install)
+RUN uv export --frozen --no-emit-project --extra qsa --format=requirements-txt --no-hashes > /constraints.txt
 
 # Copy the actual project source code and forced includes (alembic).
 COPY libs/aegra-api/src/ ./src/
@@ -53,11 +57,17 @@ FROM base AS final
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
+    libpq-dev \
+    build-essential \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed Python packages from the builder stage.
 COPY --from=builder /usr/local/lib/python${PY_VERSION}/site-packages/ /usr/local/lib/python${PY_VERSION}/site-packages/
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
+
+# Copy constraints file for runtime pip install safety
+COPY --from=builder /constraints.txt /constraints.txt
 
 # Copy runtime assets required by the app and alembic
 COPY libs/aegra-api/alembic.ini ./alembic.ini

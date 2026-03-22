@@ -28,6 +28,7 @@ services:
       - "host.docker.internal:host-gateway" # 允许容器访问主机服务
     environment:
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/aegra # 容器内仍是 5432
+      - PYTHONPATH=/app/src:/app/quantitative_strategy_agent
       - AUTH_TYPE=custom
       # - DEBUG=true
       - DEBUG=false
@@ -76,13 +77,13 @@ services:
         condition: service_healthy
     volumes:
       - ./aegra.docker.json:/app/aegra.json:ro # 使用 Docker 专用配置
-      - ./graphs:/app/graphs:ro
-      - ./src:/app/src:ro # for hot reload support of server
+      - ./libs/aegra-api/src:/app/src:ro # Mount full src for PYTHONPATH and hot reload
+      - ./libs/aegra-api/alembic:/app/alembic:ro # for migrations
+      - ./examples:/app/examples:ro
       - ./auth.py:/app/auth.py:ro
       - ./.env:/app/.env:ro
-      - ./alembic:/app/alembic:ro # for migrations
       # Mount quantitative_strategy_agent for graph loading
-      - ../quantitative_strategy_agent:/app/quantitative_strategy_agent:ro
+      - ../quantitative_strategy_agent:/app/quantitative_strategy_agent
       # Mount data directories for persistence
       - ../data:/app/data # 持久化 workspace 和 memories
       # Mount logs directory for persistence
@@ -92,10 +93,12 @@ services:
       - ${GCP_ADC_PATH:-/dev/null}:/app/gcp_credentials.json:ro
     command: >
       sh -c "
+        echo 'Installing QSA package (editable, no deps - deps already in image via uv.lock)...' &&
+        pip install --no-deps -e /app/quantitative_strategy_agent 2>/dev/null;
         echo 'Running database migrations...' &&
         alembic upgrade head &&
         echo 'Starting Aegra server...' &&
-        uvicorn src.agent_server.main:app --host 0.0.0.0 --port $${PORT:-2024} --reload --reload-dir /app/src --reload-dir /app/graphs --reload-dir /app/quantitative_strategy_agent
+        uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2024} --reload --reload-dir /app/src --reload-dir /app/quantitative_strategy_agent
       "
 
   # Redis (optional - for advanced queuing in future phases)

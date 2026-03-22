@@ -27,7 +27,7 @@ services:
       - .env
     environment:
       - POSTGRES_HOST=postgres
-      - PYTHONPATH=/app/src
+      - PYTHONPATH=/app/src:/app/quantitative_strategy_agent
     depends_on:
       postgres:
         condition: service_healthy
@@ -39,6 +39,8 @@ services:
       - ./.env:/app/.env:ro
       - ./auth.py:/app/auth.py:ro  # Custom auth handler
       - ./logs:/app/logs  # Log files (when LOG_TO_FILE=true)
+      # QSA graph mount (override AEGRA_CONFIG or aegra.json to use)
+      - ${QSA_PATH:-./examples}:/app/quantitative_strategy_agent:ro
     command: >
       sh -c "
         echo 'Running database migrations...' &&
