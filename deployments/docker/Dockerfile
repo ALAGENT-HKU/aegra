@@ -34,7 +34,7 @@ COPY uv.lock ./
 # Install dependencies from lockfile (includes dev deps for example agents + QSA deps).
 # --extra qsa: include quantitative_strategy_agent optional dependencies (deepagents, langchain, etc.)
 RUN uv export --frozen --no-emit-project --extra qsa --format=requirements-txt > requirements.txt && \
-    uv pip install --system --compile-bytecode -r requirements.txt && \
+    uv pip install --system -r requirements.txt && \
     rm requirements.txt
 
 # Export constraints file for runtime safety (prevents version drift from any runtime pip install)
@@ -46,7 +46,7 @@ COPY libs/aegra-api/alembic.ini ./alembic.ini
 COPY libs/aegra-api/alembic/ ./alembic/
 
 # Install the project package itself.
-RUN uv pip install --system --compile-bytecode --no-deps .
+RUN uv pip install --system --no-deps .
 
 # -----------------------------
 # Final, minimal runtime image
