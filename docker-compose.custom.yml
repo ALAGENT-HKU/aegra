@@ -26,52 +26,43 @@ services:
       - "0.0.0.0:${PORT:-2024}:${PORT:-2024}" # 绑定到所有网络接口，内网可访问
     extra_hosts:
       - "host.docker.internal:host-gateway" # 允许容器访问主机服务
+    env_file: [.env]
     environment:
-      - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/aegra # 容器内仍是 5432
+      # --- Infrastructure (inter-service, must be hardcoded) ---
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/aegra
       - PYTHONPATH=/app/src:/app/quantitative_strategy_agent
       - AUTH_TYPE=custom
-      # - DEBUG=true
-      - DEBUG=false
-      - PORT=${PORT:-2024} # 服务监听 2024
+      - DEBUG=${DEBUG:-false}
+      - PORT=${PORT:-2024}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp_credentials.json
-      # Database connection pool settings
-      - SA_POOL_SIZE=10 # SQLAlchemy pool size (increased from default 2)
-      - SA_MAX_OVERFLOW=5 # Allow 5 additional connections when pool is exhausted
-      - LG_POOL_SIZE=20 # LangGraph pool size (increased from default 6)
-      - LG_MIN_POOL_SIZE=5 # LangGraph minimum pool size (increased from default 1)
-      # Data directories - 容器内路径
+      # Database connection pool
+      - SA_POOL_SIZE=${SA_POOL_SIZE:-10}
+      - SA_MAX_OVERFLOW=${SA_MAX_OVERFLOW:-5}
+      - LG_POOL_SIZE=${LG_POOL_SIZE:-20}
+      - LG_MIN_POOL_SIZE=${LG_MIN_POOL_SIZE:-5}
+      # Container data paths (fixed)
       - BASE_DATA_DIR=/app/data
       - WORKSPACE_DIR=/app/data/workspace
       - MEMORIES_DIR=/app/data/memories
       - PERSIST_DIR=/app/data/database
-      # DinD (Docker-in-Docker) 宿主机路径 - 用于 Docker 卷挂载
-      # 当 aegra 容器调用 Docker API 创建 backtestlite 容器时，需要使用宿主机路径
-      # 通过环境变量配置，方便分发。运行 setup_environment.sh 自动配置
-      # 如果未设置，使用容器内路径（/app/data），假设主机与容器共享相同路径
-      - HOST_BASE_DATA_DIR=/home/whlu/ALAGENT/deepagents-quickstarts/data
-      - HOST_WORKSPACE_DIR=/home/whlu/ALAGENT/deepagents-quickstarts/data/workspace
-      - HOST_PERSIST_DIR=/home/whlu/ALAGENT/deepagents-quickstarts/data/database
-      - HOST_REPO_DIR=/home/whlu/ALAGENT/deepagents-quickstarts
-      # Docker 执行配置 - 用于 execute_backtest 工具
+      # DinD host paths — populated by setup_environment.sh into .env
+      - HOST_BASE_DATA_DIR=${HOST_BASE_DATA_DIR:-/app/data}
+      - HOST_WORKSPACE_DIR=${HOST_WORKSPACE_DIR:-/app/data/workspace}
+      - HOST_PERSIST_DIR=${HOST_PERSIST_DIR:-/app/data/database}
+      - HOST_REPO_DIR=${HOST_REPO_DIR:-/app}
+      # Docker execution (backtestlite)
       - DOCKER_IMAGE=${DOCKER_IMAGE:-backtestlite-slave:latest}
       - DOCKER_TIMEOUT=${DOCKER_TIMEOUT:-300}
       - DOCKER_MEMORY_LIMIT=${DOCKER_MEMORY_LIMIT:-4g}
-      # User Database - 连接到内网 IP 的 PostgreSQL (端口 5435)
-      - USER_DATABASE_URL=postgresql+asyncpg://alagent:alagent@202.45.128.237:5435/alagent
-      # LangGraph isolated event loops - DISABLED after full async refactor
-      # All code is now async, no sync blocking operations remain
-      # Keeping this true would serialize runs and prevent true concurrency
+      # External services — defaults for ALAGENT-HKU internal network
+      - USER_DATABASE_URL=${USER_DATABASE_URL:-postgresql+asyncpg://alagent:alagent@202.45.128.237:5435/alagent}
+      - LANGFUSE_HOST=${LANGFUSE_HOST:-http://202.45.128.237:7312}
+      - REDIS_URL=${REDIS_URL:-redis://host.docker.internal:6380/0}
       - BG_JOB_ISOLATED_LOOPS=false
-      # Langfuse - 连接到内网 IP 的 Langfuse 服务
-      - LANGFUSE_HOST=http://202.45.128.237:7312
-      # Redis - Connect to local Redis service on host (port 6380)
-      - REDIS_URL=redis://host.docker.internal:6380/0
-      # Email service - Resend
-      # - RESEND_API_KEY=${RESEND_API_KEY:-}
-      - RESEND_FROM_EMAIL=noreply@alagentai.com
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-noreply@alagentai.com}
       - LOG_TO_FILE=true
       - LOG_FILE_PATH=/app/logs/aegra.log
-      - LOG_LEVEL=INFO
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     depends_on:
       postgres:
         condition: service_healthy
@@ -82,10 +73,10 @@ services:
       - ./examples:/app/examples:ro
       - ./auth.py:/app/auth.py:ro
       - ./.env:/app/.env:ro
-      # Mount quantitative_strategy_agent for graph loading
+      # Mount quantitative_strategy_agent for graph loading (relative: ../qsa from aegra/)
       - ../quantitative_strategy_agent:/app/quantitative_strategy_agent
-      # Mount data directories for persistence
-      - ../data:/app/data # 持久化 workspace 和 memories
+      # Mount data directories for persistence (relative: ../data from aegra/)
+      - ../data:/app/data
       # Mount logs directory for persistence
       - ./logs:/app/logs # 持久化日志文件
       # DinD: 挂载 Docker socket，允许容器内调用 Docker API
