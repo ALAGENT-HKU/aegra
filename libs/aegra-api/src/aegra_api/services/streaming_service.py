@@ -157,7 +157,8 @@ class StreamingService:
                 {"debug": event_payload},
             )
         elif stream_mode_label == "custom":
-            # Custom events from get_stream_writer() - used for pipeline progress, etc.
+            # Custom events from adispatch_custom_event() (via astream_events on_custom_event)
+            # or get_stream_writer() - used for pipeline progress, deep search events, etc.
             await store_sse_event(
                 run_id,
                 event_id,

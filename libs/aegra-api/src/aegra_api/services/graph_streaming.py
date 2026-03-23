@@ -108,10 +108,16 @@ async def stream_graph_events(
     """
     run_id = str(config.get("configurable", {}).get("run_id", uuid.uuid4()))
 
-    # Prepare stream modes
-    stream_modes_set: set[str] = set(stream_mode) - {"events"}
+    # Prepare stream modes for LangGraph
+    # "events" and "custom" are AEGRA-specific modes, not passed to LangGraph
+    # - "events" triggers astream_events() instead of astream()
+    # - "custom" triggers astream_events() to capture on_custom_event from adispatch_custom_event()
+    stream_modes_set: set[str] = set(stream_mode) - {"events", "custom"}
     if "debug" not in stream_modes_set:
         stream_modes_set.add("debug")
+
+    # Track if custom events are requested (for on_custom_event handling)
+    custom_events_requested = "custom" in stream_mode
 
     # Check if graph is a remote (JavaScript) implementation
     try:
@@ -146,7 +152,11 @@ async def stream_graph_events(
     messages: dict[str, BaseMessageChunk] = {}
 
     # Choose streaming method based on mode and graph type
-    use_astream_events = "events" in stream_mode or is_js_graph
+    # Use astream_events when:
+    # - "events" mode is requested (for raw event streaming)
+    # - "custom" mode is requested (to capture on_custom_event from adispatch_custom_event)
+    # - Graph is a JavaScript remote graph
+    use_astream_events = "events" in stream_mode or custom_events_requested or is_js_graph
 
     # Yield metadata event
     yield (
@@ -185,8 +195,10 @@ async def stream_graph_events(
                     ):
                         yield event_name, event["data"]
 
-                # Process on_chain_stream events
-                if event.get("event") == "on_chain_stream" and event.get("run_id") == run_id:
+                # Process on_chain_stream events from the root graph only
+                # In astream_events v2, root graph events have empty parent_ids []
+                # Subgraph events have non-empty parent_ids and are filtered out
+                if event.get("event") == "on_chain_stream" and not event.get("parent_ids", []):
                     chunk_data = event.get("data", {}).get("chunk")
                     if chunk_data is None:
                         continue
@@ -232,6 +244,24 @@ async def stream_graph_events(
                     # This ensures on_chain_stream events are available as raw events
                     if "events" in stream_mode:
                         yield "events", event
+
+                # === Handle on_custom_event from Python graphs ===
+                # These events come from adispatch_custom_event() and are NOT filtered by subgraphs setting
+                # This allows subgraph nodes to send custom events even when subgraphs=False
+                elif (
+                    event.get("event") == "on_custom_event"
+                    and custom_events_requested
+                    and not is_js_graph  # Python graphs only (JS graphs handled above for messages)
+                ):
+                    # event format: {"event": "on_custom_event", "name": "...", "data": ..., "run_id": "...", ...}
+                    logger.info(f"[Custom Event] Received: {event.get('name')} for run_id: {event.get('run_id')}")
+                    yield "custom", {
+                        "name": event.get("name", "custom_event"),
+                        "data": event.get("data"),
+                        "run_id": event.get("run_id"),
+                        "tags": event.get("tags", []),
+                        "metadata": event.get("metadata", {}),
+                    }
 
                 # Pass through raw events if "events" mode requested
                 elif "events" in stream_mode:

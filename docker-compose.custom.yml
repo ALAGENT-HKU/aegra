@@ -63,6 +63,12 @@ services:
       - LOG_TO_FILE=true
       - LOG_FILE_PATH=/app/logs/aegra.log
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      # Embedding model settings
+      - EMBEDDING_DEVICE=${EMBEDDING_DEVICE:-cuda}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-BAAI/bge-small-en-v1.5}
+      - HF_HOME=/app/data/.hf_cache
+      # PDF extraction: pages with more drawings than this use fitz fallback
+      - PDF_DRAWING_THRESHOLD=${PDF_DRAWING_THRESHOLD:-10000}
     depends_on:
       postgres:
         condition: service_healthy
@@ -82,6 +88,14 @@ services:
       # DinD: 挂载 Docker socket，允许容器内调用 Docker API
       - /var/run/docker.sock:/var/run/docker.sock
       - ${GCP_ADC_PATH:-/dev/null}:/app/gcp_credentials.json:ro
+    # GPU passthrough for embedding model acceleration
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     command: >
       sh -c "
         echo 'Installing QSA package (editable, no deps - deps already in image via uv.lock)...' &&

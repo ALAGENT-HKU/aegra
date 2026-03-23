@@ -36,6 +36,7 @@ def get_logging_config() -> dict[str, Any]:
     # These processors will be used by BOTH structlog and standard logging
     # to ensure consistent output for all logs.
     shared_processors: list[Any] = [
+        structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_log_level,
         structlog.stdlib.add_logger_name,
         structlog.processors.CallsiteParameterAdder(
