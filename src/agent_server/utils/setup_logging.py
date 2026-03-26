@@ -149,6 +149,13 @@ def setup_logging():
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("urllib3.connectionpool").setLevel(logging.ERROR)
 
+    # Suppress harmless OpenTelemetry "Failed to detach context" errors.
+    # These occur when Langfuse's OTel tracing spans cross asyncio Task
+    # boundaries (e.g. LangGraph subgraph execution, SummarizationMiddleware).
+    # The detach failure is caught internally by OTel and does not affect
+    # tracing functionality — it just produces noisy ERROR logs.
+    logging.getLogger("opentelemetry.context").setLevel(logging.CRITICAL)
+
     # Configure structlog to route its logs through the standard logging
     # system that we just configured.
     structlog.configure(
