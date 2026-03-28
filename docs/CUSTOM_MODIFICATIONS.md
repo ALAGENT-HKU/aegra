@@ -8,14 +8,21 @@
 | 分支 | 说明 |
 |---|---|
 | `dev_ALAGENT-HKU` | 原始自定义分支 (基于旧版 upstream, 包名 `agent_server`) |
-| `dev_ALAGENT-HKU-merged` | 合并到 upstream v0.8.3 后的版本 (包名 `aegra_api`) |
+| `dev_ALAGENT-HKU-merged` | 合并到 upstream v0.8.3 后的版本 (包名 `aegra_api`)，基线 = `ba53449` + `485277e` + `74eb16b` |
 | upstream baseline | `ibbybuilds/aegra` v0.8.3 (commit `ba53449`) |
+
+> **什么是 "upstream ba53449 (v0.8.3) + 自定义 commit 485277e"？**  
+> `485277e` 是将所有 `dev_ALAGENT-HKU` 自定义功能移植到 upstream v0.8.3（包名从 `agent_server` → `aegra_api`）的大合并 commit。  
+> 之后 `74eb16b` 修复了 custom message dispatch 的 `graph_streaming.py` 逻辑。  
+> `dev_ALAGENT-HKU-merged` 分支即为该三者的叠加结果，文档中凡提及该基线均指此状态。
 
 **修改统计**: 20 个文件, ~2000 行自定义代码, 7 大功能类别
 
 ---
 
-## 一、Commit 时间线 (dev_ALAGENT-HKU)
+## 一、Commit 时间线
+
+### dev_ALAGENT-HKU（原始自定义分支，包名 `agent_server`）
 
 | 时间 | 作者 | Commit | 功能 |
 |---|---|---|---|
@@ -35,6 +42,13 @@
 | 2026-01-27 | Patrick_Lew | `0467fef` | .env.example 敏感信息清理 |
 | 2026-02-06 | Patrick_Lew | `ed32453` | **消息归档系统** (完整历史恢复) |
 | 2026-03-07 | pingpongdragon | `ede4395` | 日志 user_id/session_id/thread_id 注入 |
+
+### dev_ALAGENT-HKU-merged（移植到 upstream v0.8.3，包名 `aegra_api`）
+
+| 时间 | 作者 | Commit | 功能 |
+|---|---|---|---|
+| 2026-03-22 | Patrick_Lew | `485277e` | **移植所有自定义功能到 upstream v0.8.3**（消息归档、JWT 认证、文件日志、custom event 存储格式、recursion_limit、on_disconnect 默认值等） |
+| 2026-03-23 | Patrick_Lew | `74eb16b` | **修复 custom message dispatch**（`graph_streaming.py` 改用 `parent_ids` 过滤 `on_chain_stream`，新增 `on_custom_event` 拦截器） |
 
 ---
 

@@ -1,8 +1,8 @@
 # aegra_merged 集成测试表 — QSA on upstream v0.8.3
 
 > **分支**: `dev_ALAGENT-HKU-merged`  
-> **基线**: upstream `ba53449` (v0.8.3) + 自定义 commit `485277e`  
-> **日期**: 2026-03-22
+> **基线**: upstream `ba53449` (v0.8.3) + 自定义 commit `485277e` + fix `74eb16b`  
+> **日期**: 2026-03-23
 
 ---
 

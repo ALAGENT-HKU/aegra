@@ -249,7 +249,12 @@ class TestStreamingService:
             )
 
     async def test_store_event_from_raw_custom(self) -> None:
-        """Test that custom events are stored for replay."""
+        """Test that custom events are stored with the new custom_event envelope format.
+
+        Since commit 485277e, custom events (from adispatch_custom_event / on_custom_event)
+        are stored as {"type": "custom_event", "payload": <original_payload>, "node_path": None}
+        instead of the old {"chunk": <original_payload>} format.
+        """
         service = StreamingService()
         run_id = "run-123"
         event_id = "evt-1"
@@ -266,7 +271,11 @@ class TestStreamingService:
                 run_id,
                 event_id,
                 "custom",
-                {"chunk": custom_payload},
+                {
+                    "type": "custom_event",
+                    "payload": custom_payload,
+                    "node_path": None,
+                },
             )
 
     async def test_store_event_from_raw_run_metadata(self) -> None:
