@@ -168,7 +168,13 @@ class MessageArchive(Base):
 
     __table_args__ = (
         Index("idx_message_archive_thread", "thread_id"),
-        Index("idx_message_archive_thread_index", "thread_id", "message_index", unique=True),
+        Index("idx_message_archive_thread_index", "thread_id", "message_index"),
+        Index(
+            "idx_message_archive_thread_msg_id",
+            "thread_id", "message_id",
+            unique=True,
+            postgresql_where=text("message_id IS NOT NULL"),
+        ),
     )
 
 

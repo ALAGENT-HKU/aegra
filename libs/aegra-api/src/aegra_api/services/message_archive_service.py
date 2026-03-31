@@ -98,7 +98,9 @@ class MessageArchiveService:
                 tool_calls=msg_data.get("tool_calls"),
                 tool_call_id=msg_data.get("tool_call_id"),
                 metadata_json=msg_data.get("metadata"),
-            ).on_conflict_do_nothing()  # If somehow duplicated, just skip
+            ).on_conflict_do_nothing(
+                index_elements=["thread_id", "message_id"],
+            )  # Deduplicate by message_id, not message_index
 
             await session.execute(stmt)
             existing_ids.add(msg_id)  # Track for this batch
