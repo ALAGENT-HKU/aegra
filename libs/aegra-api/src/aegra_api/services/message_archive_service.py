@@ -8,7 +8,7 @@ has been summarized.
 from typing import Any
 
 import structlog
-from sqlalchemy import func, select, Text
+from sqlalchemy import func, select, text, Text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -100,6 +100,7 @@ class MessageArchiveService:
                 metadata_json=msg_data.get("metadata"),
             ).on_conflict_do_nothing(
                 index_elements=["thread_id", "message_id"],
+                index_where=text("message_id IS NOT NULL"),
             )  # Deduplicate by message_id, not message_index
 
             await session.execute(stmt)

@@ -105,9 +105,9 @@ class DatabaseSettings(EnvBase):
 
 class PoolSettings(EnvBase):
     """Connection pool settings for SQLAlchemy and LangGraph."""
-
-    SQLALCHEMY_POOL_SIZE: int = 2
-    SQLALCHEMY_MAX_OVERFLOW: int = 0
+    
+    SQLALCHEMY_POOL_SIZE: int = 5
+    SQLALCHEMY_MAX_OVERFLOW: int = 3
 
     LANGGRAPH_MIN_POOL_SIZE: int = 1
     LANGGRAPH_MAX_POOL_SIZE: int = 6

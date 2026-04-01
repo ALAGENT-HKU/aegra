@@ -936,29 +936,35 @@ async def _archive_messages_from_checkpoint(
 
     This is called after each run completes to ensure messages are archived
     before SummarizationMiddleware can compress them in subsequent runs.
+
+    Uses a fresh database session to avoid pool contention when called
+    from CancelledError handlers (the caller's session may hold the only
+    available connection while SSE streams occupy the rest of the pool).
     """
     from aegra_api.services.message_archive_service import message_archive_service
     from aegra_api.api.threads import get_thread_state
 
+    maker = _get_session_maker()
     try:
-        thread_state = await get_thread_state(
-            thread_id=thread_id,
-            subgraphs=False,
-            checkpoint_ns=None,
-            user=user,
-            session=session,
-        )
-
-        messages = thread_state.values.get("messages", [])
-        if messages:
-            await message_archive_service.archive_messages(
-                session, thread_id, messages
-            )
-            logger.debug(
-                "archived_messages_after_run",
+        async with maker() as archive_session:
+            thread_state = await get_thread_state(
                 thread_id=thread_id,
-                message_count=len(messages),
+                subgraphs=False,
+                checkpoint_ns=None,
+                user=user,
+                session=archive_session,
             )
+
+            messages = thread_state.values.get("messages", [])
+            if messages:
+                await message_archive_service.archive_messages(
+                    archive_session, thread_id, messages
+                )
+                logger.info(
+                    "archived_messages_after_run",
+                    thread_id=thread_id,
+                    message_count=len(messages),
+                )
     except Exception as e:
         # Don't fail the run if archiving fails, just log
         logger.warning(
@@ -1121,6 +1127,13 @@ async def execute_run_async(
         if not session:
             raise RuntimeError(f"No database session available to update thread {thread_id} status") from None
         await set_thread_status(session, thread_id, "idle")
+
+
+        # Archive messages before cancellation completes (preserve what was streamed)
+        await _archive_messages_from_checkpoint(
+            session, thread_id, graph_id, user, run_config
+        )
+
         # Signal cancellation to broker
         await streaming_service.signal_run_cancelled(run_id)
         raise
