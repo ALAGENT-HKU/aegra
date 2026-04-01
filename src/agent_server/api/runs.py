@@ -6,6 +6,9 @@ from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
+import json
+from pathlib import Path
+import os
 
 import structlog
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
@@ -1041,6 +1044,28 @@ async def _archive_messages_from_checkpoint(
             error=str(e),
         )
 
+async def _inject_skill_config(user_id: str, configurable: dict) -> None:
+    """Read user's skill_config.json and inject enabled_skills into configurable."""
+    if not user_id:
+        return
+    base_data_dir = os.environ.get("BASE_DATA_DIR", "/data")
+    skill_cfg_path = Path(base_data_dir) / "memories" / user_id / "skill_config.json"
+    if not skill_cfg_path.is_file():
+        return
+    try:
+        with open(skill_cfg_path) as f:
+            skill_cfg = json.load(f)
+        enabled = skill_cfg.get("enabled_skills")
+        if enabled is not None:
+            configurable["enabled_skills"] = enabled
+            logger.info(
+                f"[_inject_skill_config] Injected enabled_skills from {skill_cfg_path} for user {user_id}: {enabled}"
+            )
+    except Exception:
+        logger.warning(
+            f"[_inject_skill_config] failed to read {skill_cfg_path}",
+            exc_info=True,
+        )
 
 async def execute_run_async(
     run_id: str,
@@ -1075,6 +1100,13 @@ async def execute_run_async(
         run_config = create_run_config(
             run_id, thread_id, user, config or {}, checkpoint
         )
+        
+        # ---- Skill system: inject user's enabled_skills preference ----
+        if user.identity:
+            await _inject_skill_config(user.identity, run_config["configurable"])
+            logger.info(
+                f"[create_and_stream_run & _inject_skill_config] injected skill config for user={user.identity} run_id={run_id}"
+                )
 
         # Handle human-in-the-loop fields
         if interrupt_before is not None:

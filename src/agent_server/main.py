@@ -33,6 +33,7 @@ from .api.assistants import router as assistants_router
 from .api.runs import router as runs_router
 from .api.store import router as store_router
 from .api.threads import router as threads_router
+from .api.skills import router as skills_router
 from .config import HttpConfig, load_http_config
 from .core.app_loader import load_custom_app
 from .core.auth_middleware import get_auth_backend, on_auth_error
@@ -147,7 +148,7 @@ unshadowable_routes = unshadowable_health_routes
 # Create protected routes mount (core API routes)
 # Extract routes from routers for the mount
 protected_routes = []
-for router in [assistants_router, threads_router, runs_router, store_router]:
+for router in [assistants_router, threads_router, runs_router, store_router, skills_router]:
     protected_routes.extend(router.routes)
 
 protected_mount = Mount(
@@ -282,6 +283,7 @@ else:
     app.include_router(assistants_router, prefix="", tags=["Assistants"])
     app.include_router(threads_router, prefix="", tags=["Threads"])
     app.include_router(runs_router, prefix="", tags=["Runs"])
+    app.include_router(skills_router, prefix="", tags=["Skills"])   # ← 新增
     app.include_router(store_router, prefix="", tags=["Store"])
 
     # Add exception handlers
