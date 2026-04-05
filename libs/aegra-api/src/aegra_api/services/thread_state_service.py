@@ -5,13 +5,8 @@ from typing import Any
 
 import structlog
 
-<<<<<<< HEAD:src/agent_server/services/thread_state_service.py
-from ..core.serializers import LangGraphSerializer
-from ..models.threads import ThreadCheckpoint, ThreadState
-=======
 from aegra_api.core.serializers import LangGraphSerializer
 from aegra_api.models.threads import ThreadCheckpoint, ThreadState
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/thread_state_service.py
 
 logger = structlog.getLogger(__name__)
 
@@ -22,13 +17,7 @@ class ThreadStateService:
     def __init__(self) -> None:
         self.serializer = LangGraphSerializer()
 
-<<<<<<< HEAD:src/agent_server/services/thread_state_service.py
-    def convert_snapshot_to_thread_state(
-        self, snapshot: Any, thread_id: str, subgraphs: bool = False
-    ) -> ThreadState:
-=======
     def convert_snapshot_to_thread_state(self, snapshot: Any, thread_id: str, subgraphs: bool = False) -> ThreadState:
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/thread_state_service.py
         """Convert a LangGraph snapshot to ThreadState format"""
         try:
             # Extract basic values
@@ -49,13 +38,7 @@ class ThreadStateService:
                                 task["state"], thread_id, subgraphs=True
                             )
                         except Exception as e:
-<<<<<<< HEAD:src/agent_server/services/thread_state_service.py
-                            logger.error(
-                                f"Failed to serialize subgraph state for task {task.get('id')}: {e}"
-                            )
-=======
                             logger.error(f"Failed to serialize subgraph state for task {task.get('id')}: {e}")
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/thread_state_service.py
                             task["state"] = None
 
             interrupts = self.serializer.extract_interrupts_from_snapshot(snapshot)
@@ -63,25 +46,13 @@ class ThreadStateService:
             # Create checkpoint objects
             current_checkpoint = self._create_checkpoint(snapshot.config, thread_id)
             parent_checkpoint = (
-<<<<<<< HEAD:src/agent_server/services/thread_state_service.py
-                self._create_checkpoint(snapshot.parent_config, thread_id)
-                if snapshot.parent_config
-                else None
-=======
                 self._create_checkpoint(snapshot.parent_config, thread_id) if snapshot.parent_config else None
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/thread_state_service.py
             )
 
             # Extract checkpoint IDs for backward compatibility
             checkpoint_id = self._extract_checkpoint_id(snapshot.config)
             parent_checkpoint_id = (
-<<<<<<< HEAD:src/agent_server/services/thread_state_service.py
-                self._extract_checkpoint_id(snapshot.parent_config)
-                if snapshot.parent_config
-                else None
-=======
                 self._extract_checkpoint_id(snapshot.parent_config) if snapshot.parent_config else None
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/thread_state_service.py
             )
 
             return ThreadState(
@@ -104,34 +75,16 @@ class ThreadStateService:
             )
             raise
 
-<<<<<<< HEAD:src/agent_server/services/thread_state_service.py
-    def convert_snapshots_to_thread_states(
-        self, snapshots: list[Any], thread_id: str
-    ) -> list[ThreadState]:
-=======
     def convert_snapshots_to_thread_states(self, snapshots: list[Any], thread_id: str) -> list[ThreadState]:
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/thread_state_service.py
         """Convert multiple snapshots to ThreadState objects"""
         thread_states = []
 
         for i, snapshot in enumerate(snapshots):
             try:
-<<<<<<< HEAD:src/agent_server/services/thread_state_service.py
-                thread_state = self.convert_snapshot_to_thread_state(
-                    snapshot, thread_id
-                )
-                thread_states.append(thread_state)
-            except Exception as e:
-                logger.error(
-                    f"Failed to convert snapshot in batch: {e} "
-                    f"(thread_id={thread_id}, snapshot_index={i})"
-                )
-=======
                 thread_state = self.convert_snapshot_to_thread_state(snapshot, thread_id)
                 thread_states.append(thread_state)
             except Exception as e:
                 logger.error(f"Failed to convert snapshot in batch: {e} (thread_id={thread_id}, snapshot_index={i})")
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/thread_state_service.py
                 # Continue with other snapshots rather than failing the entire batch
                 continue
 
@@ -153,13 +106,7 @@ class ThreadStateService:
     def _create_checkpoint(self, config: Any, thread_id: str) -> ThreadCheckpoint:
         """Create ThreadCheckpoint from config"""
         if not config or not isinstance(config, dict):
-<<<<<<< HEAD:src/agent_server/services/thread_state_service.py
-            return ThreadCheckpoint(
-                checkpoint_id=None, thread_id=thread_id, checkpoint_ns=""
-            )
-=======
             return ThreadCheckpoint(checkpoint_id=None, thread_id=thread_id, checkpoint_ns="")
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/thread_state_service.py
 
         configurable = config.get("configurable", {})
         checkpoint_id = configurable.get("checkpoint_id")

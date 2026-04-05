@@ -20,16 +20,6 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import Depends, HTTPException
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-from sqlalchemy import func, or_, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from ..core.orm import Assistant as AssistantORM
-from ..core.orm import AssistantVersion as AssistantVersionORM
-from ..core.orm import get_session
-from ..models import Assistant, AssistantCreate, AssistantUpdate
-from ..services.langgraph_service import LangGraphService, get_langgraph_service
-=======
 from langchain_core.runnables.utils import create_model
 from pydantic import TypeAdapter
 from sqlalchemy import func, or_, select, update
@@ -40,7 +30,6 @@ from aegra_api.core.orm import AssistantVersion as AssistantVersionORM
 from aegra_api.core.orm import get_session
 from aegra_api.models import Assistant, AssistantCreate, AssistantUpdate
 from aegra_api.services.langgraph_service import LangGraphService, get_langgraph_service
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
 
 
 def to_pydantic(row: AssistantORM) -> Assistant:
@@ -65,13 +54,6 @@ def to_pydantic(row: AssistantORM) -> Assistant:
 
 def _state_jsonschema(graph) -> dict | None:
     """Extract state schema from graph channels"""
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-    from typing import Any
-
-    from langchain_core.runnables.utils import create_model
-
-=======
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
     fields: dict = {}
     for k in graph.stream_channels_list:
         v = graph.channels[k]
@@ -85,21 +67,10 @@ def _state_jsonschema(graph) -> dict | None:
 
 def _get_configurable_jsonschema(graph) -> dict:
     """Get the JSON schema for the configurable part of the graph"""
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-    from pydantic import TypeAdapter
-
-    EXCLUDED_CONFIG_SCHEMA = {"__pregel_resuming", "__pregel_checkpoint_id"}
-
-    config_schema = graph.config_schema()
-    model_fields = getattr(config_schema, "model_fields", None) or getattr(
-        config_schema, "__fields__", None
-    )
-=======
     EXCLUDED_CONFIG_SCHEMA = {"__pregel_resuming", "__pregel_checkpoint_id"}
 
     config_schema = graph.config_schema()
     model_fields = getattr(config_schema, "model_fields", None) or getattr(config_schema, "__fields__", None)
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
 
     if model_fields is not None and "configurable" in model_fields:
         configurable = TypeAdapter(model_fields["configurable"].annotation)
@@ -107,15 +78,7 @@ def _get_configurable_jsonschema(graph) -> dict:
         if json_schema:
             for key in EXCLUDED_CONFIG_SCHEMA:
                 json_schema["properties"].pop(key, None)
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-        if (
-            hasattr(graph, "config_type")
-            and graph.config_type is not None
-            and hasattr(graph.config_type, "__name__")
-        ):
-=======
         if hasattr(graph, "config_type") and graph.config_type is not None and hasattr(graph.config_type, "__name__"):
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
             json_schema["title"] = graph.config_type.__name__
         return json_schema
     return {}
@@ -164,13 +127,7 @@ class AssistantService:
         self.session = session
         self.langgraph_service = langgraph_service
 
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-    async def create_assistant(
-        self, request: AssistantCreate, user_identity: str
-    ) -> Assistant:
-=======
     async def create_assistant(self, request: AssistantCreate, user_identity: str) -> Assistant:
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
         """Create a new assistant"""
         # Get LangGraph service to validate graph
         available_graphs = self.langgraph_service.list_graphs()
@@ -186,11 +143,7 @@ class AssistantService:
 
         # Validate graph can be loaded
         try:
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-            await self.langgraph_service.get_graph(graph_id)
-=======
             await self.langgraph_service.get_graph_for_validation(graph_id)
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
         except Exception as e:
             raise HTTPException(400, f"Failed to load graph: {str(e)}") from e
 
@@ -268,13 +221,7 @@ class AssistantService:
     async def list_assistants(self, user_identity: str) -> list[Assistant]:
         """List user's assistants and system assistants"""
         # Include both user's assistants and system assistants (like search_assistants does)
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-        stmt = select(AssistantORM).where(
-            or_(AssistantORM.user_id == user_identity, AssistantORM.user_id == "system")
-        )
-=======
         stmt = select(AssistantORM).where(or_(AssistantORM.user_id == user_identity, AssistantORM.user_id == "system"))
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
         result = await self.session.scalars(stmt)
         user_assistants = [to_pydantic(a) for a in result.all()]
         return user_assistants
@@ -286,26 +233,14 @@ class AssistantService:
     ) -> list[Assistant]:
         """Search assistants with filters"""
         # Start with user's assistants
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-        stmt = select(AssistantORM).where(
-            or_(AssistantORM.user_id == user_identity, AssistantORM.user_id == "system")
-        )
-=======
         stmt = select(AssistantORM).where(or_(AssistantORM.user_id == user_identity, AssistantORM.user_id == "system"))
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
 
         # Apply filters
         if request.name:
             stmt = stmt.where(AssistantORM.name.ilike(f"%{request.name}%"))
 
         if request.description:
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-            stmt = stmt.where(
-                AssistantORM.description.ilike(f"%{request.description}%")
-            )
-=======
             stmt = stmt.where(AssistantORM.description.ilike(f"%{request.description}%"))
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
 
         if request.graph_id:
             stmt = stmt.where(AssistantORM.graph_id == request.graph_id)
@@ -330,25 +265,13 @@ class AssistantService:
     ) -> int:
         """Count assistants with filters"""
         # Include both user's assistants and system assistants (like search_assistants does)
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-        stmt = select(func.count()).where(
-            or_(AssistantORM.user_id == user_identity, AssistantORM.user_id == "system")
-        )
-=======
         stmt = select(func.count()).where(or_(AssistantORM.user_id == user_identity, AssistantORM.user_id == "system"))
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
 
         if request.name:
             stmt = stmt.where(AssistantORM.name.ilike(f"%{request.name}%"))
 
         if request.description:
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-            stmt = stmt.where(
-                AssistantORM.description.ilike(f"%{request.description}%")
-            )
-=======
             stmt = stmt.where(AssistantORM.description.ilike(f"%{request.description}%"))
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
 
         if request.graph_id:
             stmt = stmt.where(AssistantORM.graph_id == request.graph_id)
@@ -363,13 +286,7 @@ class AssistantService:
         """Get assistant by ID"""
         stmt = select(AssistantORM).where(
             AssistantORM.assistant_id == assistant_id,
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-            or_(
-                AssistantORM.user_id == user_identity, AssistantORM.user_id == "system"
-            ),
-=======
             or_(AssistantORM.user_id == user_identity, AssistantORM.user_id == "system"),
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
         )
         assistant = await self.session.scalar(stmt)
 
@@ -378,13 +295,7 @@ class AssistantService:
 
         return to_pydantic(assistant)
 
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-    async def update_assistant(
-        self, assistant_id: str, request: AssistantUpdate, user_identity: str
-    ) -> Assistant:
-=======
     async def update_assistant(self, assistant_id: str, request: AssistantUpdate, user_identity: str) -> Assistant:
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
         """Update assistant by ID"""
         metadata = request.metadata or {}
         config = request.config or {}
@@ -445,10 +356,7 @@ class AssistantService:
                 graph_id=new_version_details["graph_id"],
                 config=new_version_details["config"],
                 context=new_version_details["context"],
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-=======
                 metadata_dict=new_version_details["metadata_dict"],
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
                 version=new_version,
                 updated_at=now,
             )
@@ -474,13 +382,7 @@ class AssistantService:
 
         return {"status": "deleted"}
 
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-    async def set_assistant_latest(
-        self, assistant_id: str, version: int, user_identity: str
-    ) -> Assistant:
-=======
     async def set_assistant_latest(self, assistant_id: str, version: int, user_identity: str) -> Assistant:
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
         """Set the given version as the latest version of an assistant"""
         stmt = select(AssistantORM).where(
             AssistantORM.assistant_id == assistant_id,
@@ -496,13 +398,7 @@ class AssistantService:
         )
         assistant_version = await self.session.scalar(version_stmt)
         if not assistant_version:
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-            raise HTTPException(
-                404, f"Version '{version}' for Assistant '{assistant_id}' not found"
-            )
-=======
             raise HTTPException(404, f"Version '{version}' for Assistant '{assistant_id}' not found")
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
 
         assistant_update = (
             update(AssistantORM)
@@ -516,10 +412,7 @@ class AssistantService:
                 config=assistant_version.config,
                 context=assistant_version.context,
                 graph_id=assistant_version.graph_id,
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-=======
                 metadata_dict=assistant_version.metadata_dict,
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
                 version=version,
                 updated_at=datetime.now(UTC),
             )
@@ -529,23 +422,11 @@ class AssistantService:
         updated_assistant = await self.session.scalar(stmt)
         return to_pydantic(updated_assistant)
 
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-    async def list_assistant_versions(
-        self, assistant_id: str, user_identity: str
-    ) -> list[Assistant]:
-        """List all versions of an assistant"""
-        stmt = select(AssistantORM).where(
-            AssistantORM.assistant_id == assistant_id,
-            or_(
-                AssistantORM.user_id == user_identity, AssistantORM.user_id == "system"
-            ),
-=======
     async def list_assistant_versions(self, assistant_id: str, user_identity: str) -> list[Assistant]:
         """List all versions of an assistant"""
         stmt = select(AssistantORM).where(
             AssistantORM.assistant_id == assistant_id,
             or_(AssistantORM.user_id == user_identity, AssistantORM.user_id == "system"),
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
         )
         assistant = await self.session.scalar(stmt)
         if not assistant:
@@ -560,13 +441,7 @@ class AssistantService:
         versions = result.all()
 
         if not versions:
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-            raise HTTPException(
-                404, f"No versions found for Assistant '{assistant_id}'"
-            )
-=======
             raise HTTPException(404, f"No versions found for Assistant '{assistant_id}'")
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
 
         # Convert to Pydantic models
         version_list = [
@@ -588,23 +463,11 @@ class AssistantService:
 
         return version_list
 
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-    async def get_assistant_schemas(
-        self, assistant_id: str, user_identity: str
-    ) -> dict:
-        """Get input, output, state, config and context schemas for an assistant"""
-        stmt = select(AssistantORM).where(
-            AssistantORM.assistant_id == assistant_id,
-            or_(
-                AssistantORM.user_id == user_identity, AssistantORM.user_id == "system"
-            ),
-=======
     async def get_assistant_schemas(self, assistant_id: str, user_identity: str) -> dict:
         """Get input, output, state, config and context schemas for an assistant"""
         stmt = select(AssistantORM).where(
             AssistantORM.assistant_id == assistant_id,
             or_(AssistantORM.user_id == user_identity, AssistantORM.user_id == "system"),
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
         )
         assistant = await self.session.scalar(stmt)
 
@@ -612,13 +475,9 @@ class AssistantService:
             raise HTTPException(404, f"Assistant '{assistant_id}' not found")
 
         try:
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-            graph = await self.langgraph_service.get_graph(assistant.graph_id)
-=======
             # Use get_graph_for_validation since we only need schema extraction,
             # not checkpointer/store for execution
             graph = await self.langgraph_service.get_graph_for_validation(assistant.graph_id)
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
             schemas = _extract_graph_schemas(graph)
 
             return {"graph_id": assistant.graph_id, **schemas}
@@ -626,23 +485,11 @@ class AssistantService:
         except Exception as e:
             raise HTTPException(400, f"Failed to extract schemas: {str(e)}") from e
 
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-    async def get_assistant_graph(
-        self, assistant_id: str, xray: bool | int, user_identity: str
-    ) -> dict:
-        """Get the graph structure for visualization"""
-        stmt = select(AssistantORM).where(
-            AssistantORM.assistant_id == assistant_id,
-            or_(
-                AssistantORM.user_id == user_identity, AssistantORM.user_id == "system"
-            ),
-=======
     async def get_assistant_graph(self, assistant_id: str, xray: bool | int, user_identity: str) -> dict:
         """Get the graph structure for visualization"""
         stmt = select(AssistantORM).where(
             AssistantORM.assistant_id == assistant_id,
             or_(AssistantORM.user_id == user_identity, AssistantORM.user_id == "system"),
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
         )
         assistant = await self.session.scalar(stmt)
 
@@ -650,13 +497,9 @@ class AssistantService:
             raise HTTPException(404, f"Assistant '{assistant_id}' not found")
 
         try:
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-            graph = await self.langgraph_service.get_graph(assistant.graph_id)
-=======
             # Use get_graph_for_validation since we only need graph structure,
             # not checkpointer/store for execution
             graph = await self.langgraph_service.get_graph_for_validation(assistant.graph_id)
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
 
             # Validate xray if it's an integer (not a boolean)
             if isinstance(xray, int) and not isinstance(xray, bool) and xray <= 0:
@@ -672,13 +515,7 @@ class AssistantService:
 
                 return json_graph
             except NotImplementedError as e:
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-                raise HTTPException(
-                    422, detail="The graph does not support visualization"
-                ) from e
-=======
                 raise HTTPException(422, detail="The graph does not support visualization") from e
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
 
         except HTTPException:
             raise
@@ -695,13 +532,7 @@ class AssistantService:
         """Get subgraphs of an assistant"""
         stmt = select(AssistantORM).where(
             AssistantORM.assistant_id == assistant_id,
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-            or_(
-                AssistantORM.user_id == user_identity, AssistantORM.user_id == "system"
-            ),
-=======
             or_(AssistantORM.user_id == user_identity, AssistantORM.user_id == "system"),
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
         )
         assistant = await self.session.scalar(stmt)
 
@@ -709,34 +540,18 @@ class AssistantService:
             raise HTTPException(404, f"Assistant '{assistant_id}' not found")
 
         try:
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-            graph = await self.langgraph_service.get_graph(assistant.graph_id)
-=======
             # Use get_graph_for_validation since we only need schema extraction,
             # not checkpointer/store for execution
             graph = await self.langgraph_service.get_graph_for_validation(assistant.graph_id)
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
 
             try:
                 subgraphs = {
                     ns: _extract_graph_schemas(subgraph)
-<<<<<<< HEAD:src/agent_server/services/assistant_service.py
-                    async for ns, subgraph in graph.aget_subgraphs(
-                        namespace=namespace, recurse=recurse
-                    )
-                }
-                return subgraphs
-            except NotImplementedError as e:
-                raise HTTPException(
-                    422, detail="The graph does not support subgraphs"
-                ) from e
-=======
                     async for ns, subgraph in graph.aget_subgraphs(namespace=namespace, recurse=recurse)
                 }
                 return subgraphs
             except NotImplementedError as e:
                 raise HTTPException(422, detail="The graph does not support subgraphs") from e
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/assistant_service.py
 
         except HTTPException:
             raise

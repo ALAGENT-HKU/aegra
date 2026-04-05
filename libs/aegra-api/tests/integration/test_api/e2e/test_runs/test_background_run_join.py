@@ -120,16 +120,7 @@ async def test_background_run_and_join_e2e():
 
         if chunk.event == "messages":
             rejoin_message_count += 1
-<<<<<<<< HEAD:libs/aegra-api/tests/integration/test_api/e2e/test_runs/test_background_run_join.py
-            if (
-                hasattr(chunk, "data")
-                and chunk.data
-                and isinstance(chunk.data, list)
-                and len(chunk.data) >= 1
-            ):
-========
             if hasattr(chunk, "data") and chunk.data and isinstance(chunk.data, list) and len(chunk.data) >= 1:
->>>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/tests/e2e/test_runs/test_background_run_join.py
                 message_chunk = chunk.data[0]
                 content = getattr(message_chunk, "content", None)
                 if content is None and isinstance(message_chunk, dict):

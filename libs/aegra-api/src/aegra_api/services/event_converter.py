@@ -2,20 +2,12 @@
 
 from typing import Any
 
-<<<<<<< HEAD:src/agent_server/services/event_converter.py
-from ..core.sse import (
-=======
 from aegra_api.core.sse import (
     SSEEvent,
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/event_converter.py
     create_debug_event,
     create_end_event,
     create_error_event,
     create_messages_event,
-<<<<<<< HEAD:src/agent_server/services/event_converter.py
-    create_metadata_event,
-=======
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/event_converter.py
     format_sse_message,
 )
 
@@ -36,11 +28,7 @@ class EventConverter:
         stream_mode, payload, namespace = self._parse_raw_event(raw_event)
         return self._create_sse_event(stream_mode, payload, event_id, namespace)
 
-<<<<<<< HEAD:src/agent_server/services/event_converter.py
-    def convert_stored_to_sse(self, stored_event, run_id: str = None) -> str | None:
-=======
     def convert_stored_to_sse(self, stored_event: SSEEvent, _run_id: str | None = None) -> str | None:
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/event_converter.py
         """Convert stored event to SSE format"""
         event_type = stored_event.event
         data = stored_event.data
@@ -52,16 +40,6 @@ class EventConverter:
             metadata = data.get("metadata")
             if message_chunk is None:
                 return None
-<<<<<<< HEAD:src/agent_server/services/event_converter.py
-            message_data = (
-                (message_chunk, metadata) if metadata is not None else message_chunk
-            )
-            return create_messages_event(message_data, event_id=event_id)
-        elif event_type == "metadata":
-            return create_metadata_event(run_id, event_id)
-        elif event_type == "debug":
-            return create_debug_event(data.get("debug"), event_id)
-=======
             message_data = (message_chunk, metadata) if metadata is not None else message_chunk
             return create_messages_event(message_data, event_id=event_id)
         elif event_type == "metadata":
@@ -86,7 +64,6 @@ class EventConverter:
         elif event_type in ("updates", "custom"):
             payload = data["chunk"] if isinstance(data, dict) and "chunk" in data else data
             return format_sse_message(event_type, payload, event_id)
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/event_converter.py
         elif event_type == "end":
             return create_end_event(event_id)
         elif event_type == "error":
@@ -115,13 +92,7 @@ class EventConverter:
                     # Subgraphs format: (namespace, mode, chunk)
                     namespace, mode, chunk = raw_event
                     # Normalize namespace to list format
-<<<<<<< HEAD:src/agent_server/services/event_converter.py
-                    if namespace is None or (
-                        isinstance(namespace, (list, tuple)) and not namespace
-                    ):
-=======
                     if namespace is None or (isinstance(namespace, (list, tuple)) and not namespace):
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/event_converter.py
                         # Handle None or empty tuple/list - no namespace prefix
                         namespace_list = None
                     elif isinstance(namespace, (list, tuple)):
@@ -166,20 +137,6 @@ class EventConverter:
         else:
             event_type = stream_mode
 
-<<<<<<< HEAD:src/agent_server/services/event_converter.py
-        # Handle updates events (rarely reached - updates are filtered in graph_streaming)
-        if stream_mode == "updates":
-            if isinstance(payload, dict) and "__interrupt__" in payload:
-                # Convert interrupt updates to values events
-                if self.subgraphs and namespace:
-                    event_type = f"values|{'|'.join(namespace)}"
-                else:
-                    event_type = "values"
-                return format_sse_message(event_type, payload, event_id)
-            else:
-                # Non-interrupt updates (pass through as-is)
-                return format_sse_message(event_type, payload, event_id)
-=======
         # Handle updates events — pass through as-is.
         # Interrupt filtering/remapping is already done upstream in graph_streaming:
         # when "updates" is NOT explicitly requested, interrupt updates are remapped
@@ -187,7 +144,6 @@ class EventConverter:
         # requested, all update events (including interrupts) should be "updates".
         if stream_mode == "updates":
             return format_sse_message(event_type, payload, event_id)
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/event_converter.py
 
         # Handle specific message event types (Studio compatibility and standard messages)
         if stream_mode in (
@@ -198,13 +154,7 @@ class EventConverter:
             # Studio-specific message events - pass through as-is
             return format_sse_message(stream_mode, payload, event_id)
         elif stream_mode == "messages" or event_type.startswith("messages"):
-<<<<<<< HEAD:src/agent_server/services/event_converter.py
-            return create_messages_event(
-                payload, event_type=event_type, event_id=event_id
-            )
-=======
             return create_messages_event(payload, event_type=event_type, event_id=event_id)
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/event_converter.py
         elif stream_mode == "values" or event_type.startswith("values"):
             # For values events, use format_sse_message directly to support namespaces
             return format_sse_message(event_type, payload, event_id)

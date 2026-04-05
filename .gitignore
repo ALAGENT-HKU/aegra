@@ -15,12 +15,9 @@ wheels/
 # Pycharm
 .idea/
 
-<<<<<<< HEAD
-=======
 # VSCode
 .vscode/
 
->>>>>>> origin/dev_ALAGENT-HKU-merged
 # Testing
 .coverage
 coverage.xml
@@ -33,13 +30,9 @@ htmlcov/
 
 # Pre-commit
 .pre-commit-cache/
-<<<<<<< HEAD
-pipeline.log
-=======
 
 # MacOS
 .DS_Store
->>>>>>> origin/dev_ALAGENT-HKU-merged
 
 # Logs
 logs/

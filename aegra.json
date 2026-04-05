@@ -1,22 +1,4 @@
 {
-<<<<<<< HEAD
-  "dependencies": [
-    "/data/whlu/ALAGENT/deepagents-quickstarts/quantitative_strategy_agent"
-  ],
-  "graphs": {
-    "quant_agent": "/data/whlu/ALAGENT/deepagents-quickstarts/quantitative_strategy_agent/qsa/agent.py:agent",
-    "paper_pipeline": "/data/whlu/ALAGENT/deepagents-quickstarts/quantitative_strategy_agent/qsa/pipeline_graph.py:pipeline_graph"
-  },
-  "http": {
-    "app": "/data/whlu/ALAGENT/deepagents-quickstarts/quantitative_strategy_agent/qsa/webapp.py:app",
-    "enable_custom_route_auth": false,
-    "cors": {
-      "allow_origins": ["*"],
-      "allow_credentials": true,
-      "allow_methods": ["*"],
-      "allow_headers": ["*"]
-    }
-=======
   "dependencies": ["./examples"],
   "graphs": {
     "agent": "./examples/react_agent/graph.py:graph",
@@ -27,6 +9,5 @@
   },
   "http": {
     "app": "./examples/custom_routes_example.py:app"
->>>>>>> origin/dev_ALAGENT-HKU-merged
   }
 }

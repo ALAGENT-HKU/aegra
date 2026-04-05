@@ -20,11 +20,7 @@ make dev-install     # Installs dependencies + git hooks
 
 **Option 2: Using uv directly**
 ```bash
-<<<<<<< HEAD
-uv sync
-=======
 uv sync --all-packages
->>>>>>> origin/dev_ALAGENT-HKU-merged
 uv run pre-commit install
 uv run pre-commit install --hook-type commit-msg
 ```
@@ -151,17 +147,10 @@ make test
 make test-cov
 
 # Run specific test file
-<<<<<<< HEAD
-uv run pytest tests/e2e/test_assistants/test_assistant_graph.py
-
-# Run specific test
-uv run pytest tests/e2e/test_assistants/test_assistant_graph.py::test_create_assistant
-=======
 uv run --package aegra-api pytest libs/aegra-api/tests/e2e/test_assistants/test_assistant_graph.py
 
 # Run specific test
 uv run --package aegra-api pytest libs/aegra-api/tests/e2e/test_assistants/test_assistant_graph.py::test_create_assistant
->>>>>>> origin/dev_ALAGENT-HKU-merged
 ```
 
 ### Writing Tests

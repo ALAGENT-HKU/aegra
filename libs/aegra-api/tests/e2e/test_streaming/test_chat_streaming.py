@@ -1,10 +1,6 @@
 import pytest
 
-<<<<<<<< HEAD:libs/aegra-api/tests/integration/test_api/e2e/test_streaming/test_chat_streaming.py
-from tests.e2e._utils import elog, get_e2e_client
-========
 from tests.e2e._utils import check_and_skip_if_geo_blocked, elog, get_e2e_client
->>>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/tests/e2e/test_streaming/test_chat_streaming.py
 
 
 @pytest.mark.e2e
@@ -65,8 +61,6 @@ async def test_chat_streaming_e2e():
                 if content:
                     token_count += 1
 
-<<<<<<<< HEAD:libs/aegra-api/tests/integration/test_api/e2e/test_streaming/test_chat_streaming.py
-========
     # Check for blocking if no tokens received
     if token_count == 0:
         runs = await client.runs.list(thread_id)
@@ -75,7 +69,6 @@ async def test_chat_streaming_e2e():
             if last_run["status"] == "error":
                 check_and_skip_if_geo_blocked(last_run)
 
->>>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/tests/e2e/test_streaming/test_chat_streaming.py
     # Enforce streaming behavior: at least one event received
     assert event_count > 0, "Expected at least one event from streaming run"
     assert token_count > 0, (

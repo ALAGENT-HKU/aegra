@@ -1,70 +1,15 @@
 """Route merging utilities for combining custom apps with Aegra core routes"""
 
-<<<<<<< HEAD:src/agent_server/core/route_merger.py
-import sys
-=======
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/core/route_merger.py
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 
 import structlog
-<<<<<<< HEAD:src/agent_server/core/route_merger.py
-from starlette.applications import Starlette
-from starlette.routing import BaseRoute, Mount
-=======
 from fastapi import FastAPI
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/core/route_merger.py
 
 logger = structlog.get_logger(__name__)
 
 
-<<<<<<< HEAD:src/agent_server/core/route_merger.py
-def merge_routes(
-    user_app: Starlette,
-    unshadowable_routes: list[BaseRoute],
-    shadowable_routes: list[BaseRoute],
-    protected_mount: Mount,
-) -> Starlette:
-    """Merge user app routes with Aegra core routes following priority order.
-
-    Route priority:
-    1. Unshadowable routes (health, docs, openapi) - always accessible
-    2. User custom routes - can override shadowable routes
-    3. Shadowable routes (root, info) - can be overridden by custom routes
-    4. Protected core API mount (assistants, threads, runs, store) - mounted last
-
-    Args:
-        user_app: User's FastAPI/Starlette application
-        unshadowable_routes: Routes that cannot be overridden (health, docs)
-        shadowable_routes: Routes that can be overridden (root, info)
-        protected_mount: Mount containing protected core API routes
-
-    Returns:
-        Modified user_app with merged routes
-    """
-    # Extract custom routes from user app
-    custom_routes = list(user_app.routes)
-
-    # Log custom route paths for debugging
-    custom_paths = [
-        getattr(route, "path", None)
-        for route in custom_routes
-        if hasattr(route, "path")
-    ]
-    logger.info(f"Custom route paths: {custom_paths}")
-
-    # Merge routes in priority order
-    user_app.router.routes = (
-        unshadowable_routes + custom_routes + shadowable_routes + [protected_mount]
-    )
-
-    return user_app
-
-
-def merge_lifespans(user_app: Starlette, core_lifespan: Callable) -> Starlette:
-=======
 def merge_lifespans(user_app: FastAPI, core_lifespan: Callable) -> FastAPI:
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/core/route_merger.py
     """Merge user lifespan with Aegra's core lifespan.
 
     Both lifespans will run, with core lifespan wrapping user lifespan.
@@ -102,13 +47,7 @@ def merge_lifespans(user_app: FastAPI, core_lifespan: Callable) -> FastAPI:
     return user_app
 
 
-<<<<<<< HEAD:src/agent_server/core/route_merger.py
-def merge_exception_handlers(
-    user_app: Starlette, core_exception_handlers: dict[type, Callable]
-) -> Starlette:
-=======
 def merge_exception_handlers(user_app: FastAPI, core_exception_handlers: dict[type, Callable]) -> FastAPI:
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/core/route_merger.py
     """Merge core exception handlers with user exception handlers.
 
     Core handlers are added only if user hasn't defined a handler for that exception type.
@@ -128,61 +67,3 @@ def merge_exception_handlers(user_app: FastAPI, core_exception_handlers: dict[ty
             logger.debug(f"User app overrides exception handler for {exc_type}")
 
     return user_app
-<<<<<<< HEAD:src/agent_server/core/route_merger.py
-
-
-def update_openapi_spec(user_app: Starlette, protected_routes: list[BaseRoute] | None = None) -> None:
-    """Update OpenAPI spec if user app is FastAPI.
-
-    If the user app is a FastAPI instance, its OpenAPI spec will be automatically
-    merged with Aegra's default spec when FastAPI generates the combined spec.
-    
-    Protected routes (from Mount) are also added to OpenAPI schema for documentation,
-    but actual request handling still goes through the Mount with auth middleware.
-
-    Args:
-        user_app: User's FastAPI/Starlette application
-        protected_routes: Optional list of protected routes to include in OpenAPI
-    """
-    if "fastapi" in sys.modules:
-        from fastapi import FastAPI
-        from fastapi.routing import APIRoute
-
-        if isinstance(user_app, FastAPI):
-            # FastAPI automatically merges routes into OpenAPI spec
-            # The /docs and /openapi.json endpoints will show both
-            # Aegra routes and custom routes
-            logger.info(
-                "Custom FastAPI app detected - OpenAPI spec will include custom routes"
-            )
-            
-            # Add protected routes to OpenAPI schema for documentation
-            # These routes are already handled by the protected Mount,
-            # but we need to add them to OpenAPI for visibility
-            if protected_routes:
-                for route in protected_routes:
-                    if isinstance(route, APIRoute):
-                        # Create a clone of the route for OpenAPI documentation only
-                        # Mark it with a tag to indicate auth is required
-                        if not any(r.path == route.path and r.methods == route.methods 
-                                   for r in user_app.routes if isinstance(r, APIRoute)):
-                            # Add auth requirement to route's OpenAPI schema
-                            route_copy = APIRoute(
-                                path=route.path,
-                                endpoint=route.endpoint,
-                                methods=route.methods,
-                                name=route.name,
-                                tags=route.tags or ["Aegra Core API"],
-                                summary=route.summary,
-                                description=route.description,
-                                response_model=route.response_model,
-                                responses={
-                                    **route.responses,
-                                    401: {"description": "Authentication required"}
-                                } if route.responses else {401: {"description": "Authentication required"}},
-                            )
-                            user_app.routes.append(route_copy)
-                
-                logger.info(f"Added {len(protected_routes)} protected routes to OpenAPI spec")
-=======
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/core/route_merger.py

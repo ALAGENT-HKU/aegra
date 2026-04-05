@@ -16,13 +16,7 @@ class ObservabilityProvider(ABC):
         pass
 
     @abstractmethod
-<<<<<<< HEAD:src/agent_server/observability/base.py
-    def get_metadata(
-        self, run_id: str, thread_id: str, user_identity: str | None = None
-    ) -> dict[str, Any]:
-=======
     def get_metadata(self, run_id: str, thread_id: str, user_identity: str | None = None) -> dict[str, Any]:
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/observability/base.py
         """Return metadata to be added to the run configuration."""
         pass
 
@@ -60,40 +54,18 @@ class ObservabilityManager:
             try:
                 callbacks.extend(provider.get_callbacks())
             except Exception as e:
-<<<<<<< HEAD:src/agent_server/observability/base.py
-                logger.error(
-                    f"Failed to get callbacks from {provider.__class__.__name__}: {e}"
-                )
-        return callbacks
-
-    def get_all_metadata(
-        self, run_id: str, thread_id: str, user_identity: str | None = None
-    ) -> dict[str, Any]:
-=======
                 logger.error(f"Failed to get callbacks from {provider.__class__.__name__}: {e}")
         return callbacks
 
     def get_all_metadata(self, run_id: str, thread_id: str, user_identity: str | None = None) -> dict[str, Any]:
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/observability/base.py
         """Get metadata from all enabled providers."""
         metadata = {}
         for provider in self._providers:
             try:
-<<<<<<< HEAD:src/agent_server/observability/base.py
-                provider_metadata = provider.get_metadata(
-                    run_id, thread_id, user_identity
-                )
-                metadata.update(provider_metadata)
-            except Exception as e:
-                logger.error(
-                    f"Failed to get metadata from {provider.__class__.__name__}: {e}"
-                )
-=======
                 provider_metadata = provider.get_metadata(run_id, thread_id, user_identity)
                 metadata.update(provider_metadata)
             except Exception as e:
                 logger.error(f"Failed to get metadata from {provider.__class__.__name__}: {e}")
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/observability/base.py
         return metadata
 
 
@@ -111,12 +83,6 @@ def get_tracing_callbacks() -> list[Any]:
     return _observability_manager.get_all_callbacks()
 
 
-<<<<<<< HEAD:src/agent_server/observability/base.py
-def get_tracing_metadata(
-    run_id: str, thread_id: str, user_identity: str | None = None
-) -> dict[str, Any]:
-=======
 def get_tracing_metadata(run_id: str, thread_id: str, user_identity: str | None = None) -> dict[str, Any]:
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/observability/base.py
     """Get metadata from all registered observability providers."""
     return _observability_manager.get_all_metadata(run_id, thread_id, user_identity)

@@ -1,26 +1,3 @@
-<<<<<<< HEAD:src/agent_server/core/serializers/general.py
-"""General-purpose object serialization based on LangGraph's approach"""
-
-from typing import Any
-
-from .base import SerializationError, Serializer
-
-
-class GeneralSerializer(Serializer):
-    """Simple object serializer using LangGraph's proven approach"""
-
-    def serialize(self, obj: Any) -> Any:
-        """Serialize any object to JSON-compatible format using LangGraph's logic"""
-        try:
-            return self._serialize_object(obj)
-        except Exception as e:
-            raise SerializationError(
-                f"Failed to serialize object: {str(e)}", obj.__class__.__name__, e
-            ) from e
-
-    def _serialize_object(self, obj: Any) -> Any:
-        """Core serialization logic based on LangGraph SDK's _orjson_default"""
-=======
 """General-purpose object serialization for complex objects"""
 
 from typing import Any
@@ -40,7 +17,6 @@ class GeneralSerializer(Serializer):
 
     def _serialize_object(self, obj: Any) -> Any:
         """Core serialization logic for Python objects"""
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/core/serializers/general.py
         # Handle Pydantic v2 models (model_dump method)
         if hasattr(obj, "model_dump") and callable(obj.model_dump):
             return obj.model_dump()
@@ -50,15 +26,7 @@ class GeneralSerializer(Serializer):
             return obj.dict()
 
         # Handle LangGraph Interrupt objects (they don't have .dict() method)
-<<<<<<< HEAD:src/agent_server/core/serializers/general.py
-        elif (
-            obj.__class__.__name__ == "Interrupt"
-            and hasattr(obj, "value")
-            and hasattr(obj, "id")
-        ):
-=======
         elif obj.__class__.__name__ == "Interrupt" and hasattr(obj, "value") and hasattr(obj, "id"):
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/core/serializers/general.py
             return {"value": self._serialize_object(obj.value), "id": obj.id}
 
         # Handle NamedTuples (like PregelTask) - they have _asdict() method

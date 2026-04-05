@@ -7,11 +7,7 @@ from typing import Any
 
 import structlog
 
-<<<<<<< HEAD:src/agent_server/services/broker.py
-from .base_broker import BaseBrokerManager, BaseRunBroker
-=======
 from aegra_api.services.base_broker import BaseBrokerManager, BaseRunBroker
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/broker.py
 
 logger = structlog.getLogger(__name__)
 

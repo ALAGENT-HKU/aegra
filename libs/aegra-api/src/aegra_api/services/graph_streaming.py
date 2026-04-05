@@ -29,11 +29,7 @@ from langgraph.pregel.debug import CheckpointPayload, TaskResultPayload
 from pydantic import ValidationError
 from pydantic.v1 import ValidationError as ValidationErrorLegacy
 
-<<<<<<< HEAD:src/agent_server/services/graph_streaming.py
-from ..utils.run_utils import _filter_context_by_schema
-=======
 from aegra_api.utils.run_utils import _filter_context_by_schema
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/graph_streaming.py
 
 logger = structlog.getLogger(__name__)
 
@@ -110,13 +106,7 @@ async def stream_graph_events(
     Yields:
         Tuples of (mode, payload) where mode is the stream mode and payload is the event data
     """
-<<<<<<< HEAD:src/agent_server/services/graph_streaming.py
-    # Get run_id from configurable (where create_run_config places it)
-    configurable = config.get("configurable", {})
-    run_id = str(configurable.get("run_id") or config.get("run_id") or uuid.uuid4())
-=======
     run_id = str(config.get("configurable", {}).get("run_id", uuid.uuid4()))
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/graph_streaming.py
 
     # Prepare stream modes for LangGraph
     # "events" and "custom" are AEGRA-specific modes, not passed to LangGraph
@@ -156,13 +146,7 @@ async def stream_graph_events(
             context_schema = graph.get_context_jsonschema()
             context = await _filter_context_by_schema(context, context_schema)
         except Exception as e:
-<<<<<<< HEAD:src/agent_server/services/graph_streaming.py
-            await logger.adebug(
-                f"Failed to get context schema for filtering: {e}", exc_info=e
-            )
-=======
             await logger.adebug(f"Failed to get context schema for filtering: {e}", exc_info=e)
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/graph_streaming.py
 
     # Initialize streaming state
     messages: dict[str, BaseMessageChunk] = {}
@@ -194,26 +178,13 @@ async def stream_graph_events(
         ) as stream:
             async for event in stream:
                 event = cast("dict", event)
-<<<<<<< HEAD:src/agent_server/services/graph_streaming.py
-                event_type = event.get("event")
-                parent_ids = event.get("parent_ids", [])
-=======
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/graph_streaming.py
 
                 # Filter events marked as hidden
                 if event.get("tags") and "langsmith:hidden" in event["tags"]:
                     continue
 
                 # Extract message events from JavaScript graphs
-<<<<<<< HEAD:src/agent_server/services/graph_streaming.py
-                is_message_event = (
-                    "messages" in stream_mode
-                    and is_js_graph
-                    and event_type == "on_custom_event"
-                )
-=======
                 is_message_event = "messages" in stream_mode and is_js_graph and event.get("event") == "on_custom_event"
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/graph_streaming.py
 
                 if is_message_event:
                     event_name = event.get("name")
@@ -227,38 +198,20 @@ async def stream_graph_events(
                 # Process on_chain_stream events from the root graph only
                 # In astream_events v2, root graph events have empty parent_ids []
                 # Subgraph events have non-empty parent_ids and are filtered out
-<<<<<<< HEAD:src/agent_server/services/graph_streaming.py
-                if event_type == "on_chain_stream" and not parent_ids:
-=======
                 if event.get("event") == "on_chain_stream" and not event.get("parent_ids", []):
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/graph_streaming.py
                     chunk_data = event.get("data", {}).get("chunk")
                     if chunk_data is None:
                         continue
 
                     if subgraphs:
-<<<<<<< HEAD:src/agent_server/services/graph_streaming.py
-                        if (
-                            isinstance(chunk_data, (tuple, list))
-                            and len(chunk_data) == 3
-                        ):
-=======
                         if isinstance(chunk_data, (tuple, list)) and len(chunk_data) == 3:
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/graph_streaming.py
                             ns, mode, chunk = chunk_data
                         else:
                             # Fallback: assume 2-tuple
                             mode, chunk = chunk_data
                             ns = None
                     else:
-<<<<<<< HEAD:src/agent_server/services/graph_streaming.py
-                        if (
-                            isinstance(chunk_data, (tuple, list))
-                            and len(chunk_data) == 2
-                        ):
-=======
                         if isinstance(chunk_data, (tuple, list)) and len(chunk_data) == 2:
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/graph_streaming.py
                             mode, chunk = chunk_data
                         else:
                             # Single value
@@ -414,15 +367,7 @@ def _process_stream_event(
         if "messages-tuple" in stream_mode:
             # Pass through raw tuple format
             if subgraphs and namespace:
-<<<<<<< HEAD:src/agent_server/services/graph_streaming.py
-                ns_str = (
-                    "|".join(namespace)
-                    if isinstance(namespace, (list, tuple))
-                    else str(namespace)
-                )
-=======
                 ns_str = "|".join(namespace) if isinstance(namespace, (list, tuple)) else str(namespace)
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/graph_streaming.py
                 results.append((f"messages|{ns_str}", chunk))
             else:
                 results.append(("messages", chunk))
@@ -468,13 +413,7 @@ def _process_stream_event(
 
             # Determine event type based on message instance type
             is_partial_message = isinstance(msg, BaseMessageChunk)
-<<<<<<< HEAD:src/agent_server/services/graph_streaming.py
-            event_name = (
-                "messages/partial" if is_partial_message else "messages/complete"
-            )
-=======
             event_name = "messages/partial" if is_partial_message else "messages/complete"
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/graph_streaming.py
 
             # Format accumulated message for output
             if is_chunk_type:
@@ -489,15 +428,7 @@ def _process_stream_event(
     # Handle other stream modes
     elif mode in stream_mode:
         if subgraphs and namespace:
-<<<<<<< HEAD:src/agent_server/services/graph_streaming.py
-            ns_str = (
-                "|".join(namespace)
-                if isinstance(namespace, (list, tuple))
-                else str(namespace)
-            )
-=======
             ns_str = "|".join(namespace) if isinstance(namespace, (list, tuple)) else str(namespace)
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/graph_streaming.py
             results.append((f"{mode}|{ns_str}", chunk))
         else:
             results.append((mode, chunk))
@@ -506,27 +437,13 @@ def _process_stream_event(
     elif mode == "updates" and only_interrupt_updates:
         # Check if this update contains interrupt data
         has_interrupt_data = (
-<<<<<<< HEAD:src/agent_server/services/graph_streaming.py
-            isinstance(chunk, dict)
-            and "__interrupt__" in chunk
-            and len(chunk.get("__interrupt__", [])) > 0
-=======
             isinstance(chunk, dict) and "__interrupt__" in chunk and len(chunk.get("__interrupt__", [])) > 0
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/graph_streaming.py
         )
 
         if has_interrupt_data:
             # Remap interrupt updates to values events for backward compatibility
             if subgraphs and namespace:
-<<<<<<< HEAD:src/agent_server/services/graph_streaming.py
-                ns_str = (
-                    "|".join(namespace)
-                    if isinstance(namespace, (list, tuple))
-                    else str(namespace)
-                )
-=======
                 ns_str = "|".join(namespace) if isinstance(namespace, (list, tuple)) else str(namespace)
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/graph_streaming.py
                 results.append((f"values|{ns_str}", chunk))
             else:
                 results.append(("values", chunk))

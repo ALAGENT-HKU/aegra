@@ -1,20 +1,13 @@
 """Configuration management for Aegra HTTP settings"""
 
 import json
-<<<<<<< HEAD:src/agent_server/config.py
-import os
-=======
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/config.py
 from pathlib import Path
 from typing import TypedDict
 
 import structlog
 
-<<<<<<< HEAD:src/agent_server/config.py
-=======
 from aegra_api.settings import settings
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/config.py
 logger = structlog.get_logger(__name__)
 
 
@@ -35,11 +28,7 @@ class HttpConfig(TypedDict, total=False):
     app: str
     """Import path for custom Starlette/FastAPI app to mount"""
     enable_custom_route_auth: bool
-<<<<<<< HEAD:src/agent_server/config.py
-    """Apply Aegra authentication middleware to custom routes"""
-=======
     """Apply Aegra authentication dependency to custom routes (uses FastAPI dependencies, not middleware)"""
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/config.py
     cors: CorsConfig | None
     """Custom CORS configuration"""
 
@@ -77,15 +66,6 @@ class StoreConfig(TypedDict, total=False):
     """Vector index configuration for semantic search"""
 
 
-<<<<<<< HEAD:src/agent_server/config.py
-def _resolve_config_path() -> Path | None:
-    """Resolve config file path using the same logic as LangGraphService.
-
-    Resolution order:
-    1) AEGRA_CONFIG env var (absolute or relative path) - returned even if doesn't exist
-    2) aegra.json in CWD
-    3) langgraph.json in CWD (fallback)
-=======
 class AuthConfig(TypedDict, total=False):
     """Auth configuration options."""
 
@@ -107,24 +87,16 @@ def _resolve_config_path() -> Path | None:
     1) AEGRA_CONFIG env var (if set and file exists)
     2) aegra.json in CWD
     3) langgraph.json in CWD (fallback for compatibility)
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/config.py
 
     Returns:
         Path to config file or None if not found
     """
-<<<<<<< HEAD:src/agent_server/config.py
-    # 1) Env var override - return even if doesn't exist (let caller handle error)
-    env_path = os.getenv("AEGRA_CONFIG")
-    if env_path:
-        return Path(env_path)
-=======
     # 1) Env var override - only use if file actually exists
     if env_path := settings.app.AEGRA_CONFIG:
         path = Path(env_path)
         if path.exists():
             return path
         logger.warning(f"AEGRA_CONFIG={env_path!r} not found, falling back to config discovery")
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/config.py
 
     # 2) aegra.json if present
     aegra_path = Path("aegra.json")
@@ -140,11 +112,7 @@ def _resolve_config_path() -> Path | None:
 
 
 def load_config() -> dict | None:
-<<<<<<< HEAD:src/agent_server/config.py
-    """Load full config file using the same resolution logic as LangGraphService.
-=======
     """Load full config file using standard resolution order.
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/config.py
 
     Returns:
         Full config dict or None if not found
@@ -155,15 +123,11 @@ def load_config() -> dict | None:
 
     try:
         with config_path.open() as f:
-<<<<<<< HEAD:src/agent_server/config.py
-            return json.load(f)
-=======
             data = json.load(f)
         if not isinstance(data, dict):
             logger.warning(f"Config file {config_path} does not contain a JSON object")
             return None
         return data
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/config.py
     except Exception as e:
         logger.warning(f"Failed to load config from {config_path}: {e}")
         return None
@@ -172,11 +136,7 @@ def load_config() -> dict | None:
 def load_http_config() -> HttpConfig | None:
     """Load HTTP config from aegra.json or langgraph.json.
 
-<<<<<<< HEAD:src/agent_server/config.py
-    Uses the same config resolution logic as LangGraphService to ensure consistency.
-=======
     Uses standard config resolution order.
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/config.py
 
     Returns:
         HTTP configuration dict or None if not found
@@ -197,11 +157,7 @@ def load_http_config() -> HttpConfig | None:
 def load_store_config() -> StoreConfig | None:
     """Load store config from aegra.json or langgraph.json.
 
-<<<<<<< HEAD:src/agent_server/config.py
-    Uses the same config resolution logic as LangGraphService to ensure consistency.
-=======
     Uses standard config resolution order.
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/config.py
 
     Returns:
         Store configuration dict or None if not found
@@ -217,8 +173,6 @@ def load_store_config() -> StoreConfig | None:
         return store_config
 
     return None
-<<<<<<< HEAD:src/agent_server/config.py
-=======
 
 
 def load_auth_config() -> AuthConfig | None:
@@ -255,4 +209,3 @@ def get_config_dir() -> Path | None:
     if config_path and config_path.exists():
         return config_path.parent.resolve()
     return None
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/config.py

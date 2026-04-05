@@ -19,15 +19,8 @@ from langgraph_sdk import Auth  # type: ignore
 from starlette.authentication import AuthCredentials, BaseUser
 
 # Internal context-var storing the current auth context (or None when absent)
-<<<<<<< HEAD:src/agent_server/core/auth_ctx.py
-_AuthCtx: contextvars.ContextVar[Auth.types.BaseAuthContext | None] = (
-    contextvars.ContextVar(  # type: ignore[attr-defined]
-        "LangGraphAuthContext", default=None
-    )
-=======
 _AuthCtx: contextvars.ContextVar[Auth.types.BaseAuthContext | None] = contextvars.ContextVar(  # type: ignore[attr-defined]
     "AuthContext", default=None
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/core/auth_ctx.py
 )
 
 

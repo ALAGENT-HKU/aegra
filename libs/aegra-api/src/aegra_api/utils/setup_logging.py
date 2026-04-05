@@ -4,12 +4,9 @@ import os
 from typing import Any
 
 import structlog
-<<<<<<< HEAD:src/agent_server/utils/setup_logging.py
-=======
 import structlog.typing
 
 from aegra_api.settings import settings
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/utils/setup_logging.py
 
 
 def get_logging_config() -> dict[str, Any]:
@@ -19,29 +16,17 @@ def get_logging_config() -> dict[str, Any]:
 
     This configuration solves the multiprocessing "pickling" error on Windows
     by using string references for streams (e.g., "ext://sys.stdout").
-<<<<<<< HEAD:src/agent_server/utils/setup_logging.py
-    
-    Logging is configurable via environment variables:
-    - LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-=======
 
     File logging is configurable via environment variables:
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/utils/setup_logging.py
     - LOG_TO_FILE: Enable file logging (true/false, default: false)
     - LOG_FILE_PATH: Path to log file (default: logs/aegra.log)
     - LOG_FILE_MAX_BYTES: Max file size before rotation (default: 10MB)
     - LOG_FILE_BACKUP_COUNT: Number of backup files to keep (default: 5)
     """
     # Determine log level from environment or set a default
-<<<<<<< HEAD:src/agent_server/utils/setup_logging.py
-    env_mode = os.getenv("ENV_MODE", "LOCAL").upper()
-    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
-    
-=======
     env_mode = settings.app.ENV_MODE
     log_level = settings.app.LOG_LEVEL
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/utils/setup_logging.py
     # File logging configuration
     log_to_file = os.getenv("LOG_TO_FILE", "false").lower() == "true"
     log_file_path = os.getenv("LOG_FILE_PATH", "logs/aegra.log")
@@ -68,25 +53,6 @@ def get_logging_config() -> dict[str, Any]:
 
     # Determine the final renderer based on the environment
     # Use a colorful console renderer for local development, and JSON for production.
-<<<<<<< HEAD:src/agent_server/utils/setup_logging.py
-    if env_mode in ("LOCAL", "DEVELOPMENT"):
-        console_renderer = structlog.dev.ConsoleRenderer(colors=True, pad_level=True)
-    else:
-        console_renderer = structlog.processors.JSONRenderer()
-    
-    # File logs always use JSON format for easier parsing
-    file_renderer = structlog.processors.JSONRenderer()
-
-    config = {
-        "version": 1,
-        "disable_existing_loggers": False,  # Important for library logging
-        "formatters": {
-            "console": {
-                # Use structlog's formatter as the bridge
-                "()": "structlog.stdlib.ProcessorFormatter",
-                # The final processor is the renderer.
-                "processor": console_renderer,
-=======
     final_renderer: structlog.typing.Processor
     if env_mode in ("LOCAL", "DEVELOPMENT"):
         final_renderer = structlog.dev.ConsoleRenderer(
@@ -112,7 +78,6 @@ def get_logging_config() -> dict[str, Any]:
                 "()": "structlog.stdlib.ProcessorFormatter",
                 # The final processor is the renderer.
                 "processor": final_renderer,
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/utils/setup_logging.py
                 # These processors are run on ANY log record, including those from Uvicorn.
                 "foreign_pre_chain": shared_processors,
             },
@@ -123,17 +88,10 @@ def get_logging_config() -> dict[str, Any]:
             },
         },
         "handlers": {
-<<<<<<< HEAD:src/agent_server/utils/setup_logging.py
-            "console": {
-                "level": log_level,
-                "class": "logging.StreamHandler",
-                "formatter": "console",
-=======
             "default": {
                 "level": log_level,
                 "class": "logging.StreamHandler",
                 "formatter": "default",
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/utils/setup_logging.py
                 # IMPORTANT: Use the string reference to avoid the pickling error.
                 # This defers the lookup of sys.stdout until the config is loaded
                 # in the child process.
@@ -143,11 +101,7 @@ def get_logging_config() -> dict[str, Any]:
         "loggers": {
             # Configure the root logger to catch everything
             "": {
-<<<<<<< HEAD:src/agent_server/utils/setup_logging.py
-                "handlers": ["console"],
-=======
                 "handlers": ["default"],
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/utils/setup_logging.py
                 "level": log_level,
                 "propagate": False,  # Don't pass to other handlers
             },
@@ -162,16 +116,6 @@ def get_logging_config() -> dict[str, Any]:
             },
         },
     }
-<<<<<<< HEAD:src/agent_server/utils/setup_logging.py
-    
-    # Add file handler if enabled
-    if log_to_file:
-        # Create logs directory if it doesn't exist
-        log_dir = os.path.dirname(log_file_path)
-        if log_dir and not os.path.exists(log_dir):
-            os.makedirs(log_dir, exist_ok=True)
-        
-=======
 
     # Add file handler if enabled
     if log_to_file:
@@ -179,7 +123,6 @@ def get_logging_config() -> dict[str, Any]:
         if log_dir and not os.path.exists(log_dir):
             os.makedirs(log_dir, exist_ok=True)
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/utils/setup_logging.py
         config["handlers"]["file"] = {
             "level": log_level,
             "class": "logging.handlers.RotatingFileHandler",
@@ -189,23 +132,12 @@ def get_logging_config() -> dict[str, Any]:
             "backupCount": log_file_backup_count,
             "encoding": "utf-8",
         }
-<<<<<<< HEAD:src/agent_server/utils/setup_logging.py
-        
-        # Add file handler to root logger
-        config["loggers"][""]["handlers"].append("file")
-    
-    return config
-
-
-def setup_logging():
-=======
         config["loggers"][""]["handlers"].append("file")
 
     return config
 
 
 def setup_logging() -> None:
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/utils/setup_logging.py
     """
     Configures both standard logging and structlog based on the
     dictionary from get_logging_config(). This should be called
@@ -224,27 +156,13 @@ def setup_logging() -> None:
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("urllib3.connectionpool").setLevel(logging.ERROR)
 
-<<<<<<< HEAD:src/agent_server/utils/setup_logging.py
-    # Suppress harmless OpenTelemetry "Failed to detach context" errors.
-    # These occur when Langfuse's OTel tracing spans cross asyncio Task
-    # boundaries (e.g. LangGraph subgraph execution, SummarizationMiddleware).
-    # The detach failure is caught internally by OTel and does not affect
-    # tracing functionality — it just produces noisy ERROR logs.
-    logging.getLogger("opentelemetry.context").setLevel(logging.CRITICAL)
-
-=======
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/utils/setup_logging.py
     # Configure structlog to route its logs through the standard logging
     # system that we just configured.
     structlog.configure(
         processors=[
             structlog.stdlib.filter_by_level,
             # Add shared processors to structlog's pipeline
-<<<<<<< HEAD:src/agent_server/utils/setup_logging.py
-            *config["formatters"]["console"]["foreign_pre_chain"],
-=======
             *config["formatters"]["default"]["foreign_pre_chain"],
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/utils/setup_logging.py
             # Prepare the log record for the standard library's formatter
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],

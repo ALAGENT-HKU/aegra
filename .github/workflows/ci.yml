@@ -7,19 +7,8 @@ on:
     branches: [main, develop]
 
 jobs:
-<<<<<<< HEAD
-  lint-and-test:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    strategy:
-      matrix:
-        python-version: ["3.11"]
-
-=======
   lint:
     runs-on: ubuntu-latest
->>>>>>> origin/dev_ALAGENT-HKU-merged
     steps:
       - uses: actions/checkout@v4
 
@@ -28,35 +17,6 @@ jobs:
         with:
           enable-cache: true
 
-<<<<<<< HEAD
-      - name: Set up Python ${{ matrix.python-version }}
-        run: uv python install ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: uv sync
-
-      - name: Check formatting with ruff
-        run: uv run ruff format --check .
-
-      - name: Lint with ruff
-        run: uv run ruff check .
-
-      - name: Security check with bandit
-        run: uv run bandit -c pyproject.toml -r src/
-        continue-on-error: true
-
-      - name: Type check with mypy
-        run: uv run mypy src/
-        continue-on-error: true
-
-      - name: Run tests with coverage
-        run: uv run pytest --cov=src --cov-report=xml --cov-report=term --ignore=tests/e2e
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-=======
       - name: Set up Python
         run: uv python install 3.12
 
@@ -149,5 +109,4 @@ jobs:
           files: coverage.xml
           flags: aegra-cli
           name: aegra-cli
->>>>>>> origin/dev_ALAGENT-HKU-merged
           fail_ci_if_error: false

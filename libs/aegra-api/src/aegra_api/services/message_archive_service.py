@@ -8,19 +8,11 @@ has been summarized.
 from typing import Any
 
 import structlog
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-from sqlalchemy import func, select, Text
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from ..core.orm import MessageArchive
-=======
 from sqlalchemy import func, select, text, Text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from aegra_api.core.orm import MessageArchive
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
 
 logger = structlog.get_logger(__name__)
 
@@ -46,30 +38,18 @@ class MessageArchiveService:
     ) -> int:
         """
         Archive messages from LangGraph state.
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-        
-=======
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
         CRITICAL DESIGN:
         - Uses message_id as the deduplication key (not message_index!)
         - INSERT only, never UPDATE existing messages
         - This prevents SummarizationMiddleware compressed messages from
           overwriting the original history
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-        
-=======
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
         Args:
             session: Database session
             thread_id: Thread identifier
             messages: List of LangGraph messages to archive
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-            
-=======
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
         Returns:
             Number of NEW messages archived (excludes already-existing)
         """
@@ -78,27 +58,13 @@ class MessageArchiveService:
 
         # First, get existing message_ids to avoid duplicates
         existing_ids = await self._get_existing_message_ids(session, thread_id)
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-        
-=======
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
         # Also get current max index for new messages
         max_index = await self._get_max_index(session, thread_id)
 
         archived_count = 0
         skipped_existing = 0
         skipped_summary = 0
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-        
-        for msg in messages:
-            msg_data = self._serialize_message(msg, 0)  # index will be set later
-            
-            # Skip if we can't serialize
-            if not msg_data:
-                continue
-            
-=======
 
         for msg in messages:
             msg_data = self._serialize_message(msg, 0)  # index will be set later
@@ -107,35 +73,21 @@ class MessageArchiveService:
             if not msg_data:
                 continue
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
             # Skip summary messages - they replace real history
             if self._is_summary_message(msg_data):
                 skipped_summary += 1
                 continue
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-            
-            msg_id = msg_data.get("id")
-            
-=======
 
             msg_id = msg_data.get("id")
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
             # Skip if message already exists (by message_id)
             if msg_id and msg_id in existing_ids:
                 skipped_existing += 1
                 continue
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-            
-            # Assign new index (append to end)
-            max_index += 1
-            
-=======
 
             # Assign new index (append to end)
             max_index += 1
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
             # INSERT only - no UPSERT, no UPDATE
             stmt = insert(MessageArchive).values(
                 thread_id=thread_id,
@@ -146,16 +98,11 @@ class MessageArchiveService:
                 tool_calls=msg_data.get("tool_calls"),
                 tool_call_id=msg_data.get("tool_call_id"),
                 metadata_json=msg_data.get("metadata"),
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-            ).on_conflict_do_nothing()  # If somehow duplicated, just skip
-            
-=======
             ).on_conflict_do_nothing(
                 index_elements=["thread_id", "message_id"],
                 index_where=text("message_id IS NOT NULL"),
             )  # Deduplicate by message_id, not message_index
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
             await session.execute(stmt)
             existing_ids.add(msg_id)  # Track for this batch
             archived_count += 1
@@ -176,10 +123,6 @@ class MessageArchiveService:
         thread_id: str,
     ) -> set[str]:
         """Get all existing message IDs for a thread."""
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-        from sqlalchemy import select
-=======
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
         stmt = (
             select(MessageArchive.message_id)
             .where(MessageArchive.thread_id == thread_id)
@@ -208,16 +151,6 @@ class MessageArchiveService:
     ) -> list[dict]:
         """
         Get complete archived history for a thread.
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-        
-        NOTE: Filters out any summary messages that may have leaked into archive
-        from older buggy code.
-        
-        Args:
-            session: Database session
-            thread_id: Thread identifier
-            
-=======
 
         NOTE: Filters out any summary messages that may have leaked into archive
         from older buggy code.
@@ -226,7 +159,6 @@ class MessageArchiveService:
             session: Database session
             thread_id: Thread identifier
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
         Returns:
             List of messages in LangGraph-compatible format
         """
@@ -243,11 +175,7 @@ class MessageArchiveService:
             # Filter out summary messages (defensive - shouldn't exist in new archives)
             if not self._is_summary_message_content(msg_dict.get("content", "")):
                 messages.append(msg_dict)
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-        
-=======
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
         return messages
 
     def _is_summary_message_content(self, content: Any) -> bool:
@@ -263,50 +191,30 @@ class MessageArchiveService:
     ) -> int:
         """
         Remove summary messages from archive (for fixing corrupted threads).
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-        
-=======
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
         Returns:
             Number of messages deleted
         """
         from sqlalchemy import delete, or_
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-        
-        # Delete messages where content starts with summary prefix
-        # This is a bit tricky with JSONB, need to handle both string and dict content
-=======
 
         # Delete messages where content starts with summary prefix
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
         stmt = (
             delete(MessageArchive)
             .where(MessageArchive.thread_id == thread_id)
             .where(
                 or_(
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-                    MessageArchive.content["text"].astext.startswith("Here is a summary of the conversation"),
-                    # For string content stored directly
-                    func.cast(MessageArchive.content, Text).startswith('{"text": "Here is a summary')
-=======
                     MessageArchive.content["text"].astext.startswith(
                         "Here is a summary of the conversation"
                     ),
                     func.cast(MessageArchive.content, Text).startswith(
                         '{"text": "Here is a summary'
                     ),
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
                 )
             )
         )
         result = await session.execute(stmt)
         await session.commit()
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-        
-=======
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
         deleted = result.rowcount or 0
         if deleted > 0:
             logger.info(
@@ -345,11 +253,7 @@ class MessageArchiveService:
     ) -> int:
         """Delete all archived messages for a thread."""
         from sqlalchemy import delete
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-        
-=======
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
         stmt = delete(MessageArchive).where(MessageArchive.thread_id == thread_id)
         result = await session.execute(stmt)
         await session.commit()
@@ -358,11 +262,7 @@ class MessageArchiveService:
     def _serialize_message(self, msg: Any, index: int) -> dict | None:
         """
         Serialize a LangGraph message for storage.
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-        
-=======
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
         Handles different message formats:
         - Pydantic models (BaseMessage subclasses)
         - Dicts (from checkpoint serialization)
@@ -414,11 +314,7 @@ class MessageArchiveService:
     def _deserialize_message(self, archive: MessageArchive) -> dict:
         """
         Deserialize archived message back to LangGraph-compatible format.
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-        
-=======
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
         Returns a dict that matches the format expected by the frontend's
         reconstructHistoryFromMessages function.
         """
@@ -428,11 +324,7 @@ class MessageArchiveService:
             content = content["text"]
 
         metadata = archive.metadata_json or {}
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-        
-=======
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
         result = {
             "id": archive.message_id,
             "type": archive.message_type,
@@ -441,11 +333,7 @@ class MessageArchiveService:
                 archive.created_at.isoformat() if archive.created_at else None
             ),
         }
-<<<<<<< HEAD:src/agent_server/services/message_archive_service.py
-        
-=======
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/services/message_archive_service.py
         # Add optional fields
         if archive.tool_calls:
             result["tool_calls"] = archive.tool_calls

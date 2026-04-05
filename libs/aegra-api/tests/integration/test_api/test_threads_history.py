@@ -3,11 +3,7 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-<<<<<<<< HEAD:libs/aegra-api/tests/integration/test_api/integration/test_api/test_threads_history.py
-from agent_server.core.orm import (
-========
 from aegra_api.core.orm import (
->>>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/tests/integration/test_api/test_threads_history.py
     get_session as core_get_session,  # for dependency override
 )
 

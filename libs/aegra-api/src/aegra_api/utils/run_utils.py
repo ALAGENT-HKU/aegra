@@ -35,13 +35,7 @@ def _merge_jsonb(*objects: dict) -> dict:
     return result
 
 
-<<<<<<< HEAD:src/agent_server/utils/run_utils.py
-async def _filter_context_by_schema(
-    context: dict[str, Any], context_schema: dict | None
-) -> dict[str, Any]:
-=======
 async def _filter_context_by_schema(context: dict[str, Any], context_schema: dict | None) -> dict[str, Any]:
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/utils/run_utils.py
     """Filter context parameters based on the context schema."""
     if not context_schema or not context:
         return context

@@ -8,11 +8,8 @@ from asgi_correlation_id import correlation_id
 from starlette.types import ASGIApp, Receive, Scope, Send
 from uvicorn.protocols.utils import get_path_with_query_string
 
-<<<<<<< HEAD:src/agent_server/middleware/logger_middleware.py
-=======
 from aegra_api.settings import settings
 
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/middleware/logger_middleware.py
 app_logger = structlog.stdlib.get_logger("app.app_logs")
 access_logger = structlog.stdlib.get_logger("app.access_logs")
 
@@ -98,11 +95,7 @@ class StructLogMiddleware:
                 "method": http_method,
                 "version": http_version,
             }
-<<<<<<< HEAD:src/agent_server/middleware/logger_middleware.py
-            if os.getenv("LOG_VERBOSITY", "standard").lower() == "verbose":
-=======
             if settings.app.LOG_VERBOSITY == "verbose":
->>>>>>> origin/dev_ALAGENT-HKU-merged:libs/aegra-api/src/aegra_api/middleware/logger_middleware.py
                 log_data["request_id"] = correlation_id.get()
 
             status_code = info.get("status_code", 500)
