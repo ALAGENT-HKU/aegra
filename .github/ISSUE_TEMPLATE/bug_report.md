@@ -42,4 +42,8 @@ Paste relevant logs or error messages here
 Add any other context about the problem here.
 
 **Possible Solution**
+<<<<<<< HEAD
 If you have ideas about what might be causing this or how to fix it, please share!
+=======
+If you have ideas about what might be causing this or how to fix it, please share!
+>>>>>>> origin/dev_ALAGENT-HKU-merged

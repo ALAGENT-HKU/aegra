@@ -1,0 +1,121 @@
+services:
+  # PostgreSQL database for LangGraph and metadata
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: aegra
+    ports:
+      - "${PG_PORT:-5442}:5432" # 外部端口，可通过 PG_PORT 修改避免冲突
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d aegra" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Aegra Server
+  aegra:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile
+    user: "0:0" # Run as root to install dependencies
+    ports:
+      - "0.0.0.0:${PORT:-2024}:${PORT:-2024}" # 绑定到所有网络接口，内网可访问
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # 允许容器访问主机服务
+    env_file: [.env]
+    environment:
+      # --- Infrastructure (inter-service, must be hardcoded) ---
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/aegra
+      - PYTHONPATH=/app/src:/app/quantitative_strategy_agent
+      - AUTH_TYPE=custom
+      - DEBUG=${DEBUG:-false}
+      - PORT=${PORT:-2024}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp_credentials.json
+      # Database connection pool
+      - SA_POOL_SIZE=${SA_POOL_SIZE:-10}
+      - SA_MAX_OVERFLOW=${SA_MAX_OVERFLOW:-5}
+      - LG_POOL_SIZE=${LG_POOL_SIZE:-20}
+      - LG_MIN_POOL_SIZE=${LG_MIN_POOL_SIZE:-5}
+      # Container data paths (fixed)
+      - BASE_DATA_DIR=/app/data
+      - WORKSPACE_DIR=/app/data/workspace
+      - MEMORIES_DIR=/app/data/memories
+      - PERSIST_DIR=/app/data/database
+      # DinD host paths — populated by setup_environment.sh into .env
+      - HOST_BASE_DATA_DIR=${HOST_BASE_DATA_DIR:-/app/data}
+      - HOST_WORKSPACE_DIR=${HOST_WORKSPACE_DIR:-/app/data/workspace}
+      - HOST_PERSIST_DIR=${HOST_PERSIST_DIR:-/app/data/database}
+      - HOST_REPO_DIR=${HOST_REPO_DIR:-/app}
+      # Docker execution (backtestlite)
+      - DOCKER_IMAGE=${DOCKER_IMAGE:-backtestlite-slave:latest}
+      - DOCKER_TIMEOUT=${DOCKER_TIMEOUT:-300}
+      - DOCKER_MEMORY_LIMIT=${DOCKER_MEMORY_LIMIT:-4g}
+      # External services — defaults for ALAGENT-HKU internal network
+      - USER_DATABASE_URL=${USER_DATABASE_URL:-postgresql+asyncpg://alagent:alagent@202.45.128.237:5435/alagent}
+      - LANGFUSE_HOST=${LANGFUSE_HOST:-http://202.45.128.237:7312}
+      - REDIS_URL=${REDIS_URL:-redis://host.docker.internal:6380/0}
+      - BG_JOB_ISOLATED_LOOPS=false
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-noreply@alagentai.com}
+      - LOG_TO_FILE=true
+      - LOG_FILE_PATH=/app/logs/aegra.log
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      # Embedding model settings
+      - EMBEDDING_DEVICE=${EMBEDDING_DEVICE:-cuda}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-BAAI/bge-small-en-v1.5}
+      - HF_HOME=/app/data/.hf_cache
+      # PDF extraction: pages with more drawings than this use fitz fallback
+      - PDF_DRAWING_THRESHOLD=${PDF_DRAWING_THRESHOLD:-10000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./aegra.docker.json:/app/aegra.json:ro # 使用 Docker 专用配置
+      - ./libs/aegra-api/src:/app/src:ro # Mount full src for PYTHONPATH and hot reload
+      - ./libs/aegra-api/alembic:/app/alembic:ro # for migrations
+      - ./examples:/app/examples:ro
+      - ./auth.py:/app/auth.py:ro
+      - ./.env:/app/.env:ro
+      # Mount quantitative_strategy_agent for graph loading (relative: ../qsa from aegra/)
+      - ../quantitative_strategy_agent:/app/quantitative_strategy_agent
+      # Mount data directories for persistence (relative: ../data from aegra/)
+      - ../data:/app/data
+      # Mount logs directory for persistence
+      - ./logs:/app/logs # 持久化日志文件
+      # DinD: 挂载 Docker socket，允许容器内调用 Docker API
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${GCP_ADC_PATH:-/dev/null}:/app/gcp_credentials.json:ro
+    # GPU passthrough for embedding model acceleration
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: >
+      sh -c "
+        echo 'Installing QSA package (editable, no deps - deps already in image via uv.lock)...' &&
+        pip install --no-deps -e /app/quantitative_strategy_agent 2>/dev/null;
+        echo 'Running database migrations...' &&
+        alembic upgrade head &&
+        echo 'Starting Aegra server...' &&
+        uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2024} --reload --reload-dir /app/src --reload-dir /app/quantitative_strategy_agent
+      "
+
+  # Redis (optional - for advanced queuing in future phases)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    profiles:
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:

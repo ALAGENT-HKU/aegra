@@ -6,12 +6,22 @@
     "quant_agent": "/app/quantitative_strategy_agent/qsa/agent.py:agent",
     "paper_pipeline": "/app/quantitative_strategy_agent/qsa/pipeline_graph.py:pipeline_graph"
   },
+<<<<<<< HEAD
+=======
+  "auth": {
+    "path": "/app/auth.py:auth"
+  },
+>>>>>>> origin/dev_ALAGENT-HKU-merged
   "http": {
     "app": "/app/quantitative_strategy_agent/qsa/webapp.py:app",
     "enable_custom_route_auth": false,
     "cors": {
       "allow_origins": ["*"],
+<<<<<<< HEAD
       "allow_credentials": true,
+=======
+      "allow_credentials": false,
+>>>>>>> origin/dev_ALAGENT-HKU-merged
       "allow_methods": ["*"],
       "allow_headers": ["*"]
     }

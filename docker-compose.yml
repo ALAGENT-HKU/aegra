@@ -1,17 +1,28 @@
 services:
   # PostgreSQL database for LangGraph and metadata
   postgres:
+<<<<<<< HEAD
     image: postgres:15-alpine
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: aegra
+=======
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    env_file:
+      - .env
+>>>>>>> origin/dev_ALAGENT-HKU-merged
     ports:
       - "5442:5432" # 外部端口 5442，避免与 Langfuse 冲突
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
+<<<<<<< HEAD
       test: [ "CMD-SHELL", "pg_isready -U user -d aegra" ]
+=======
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+>>>>>>> origin/dev_ALAGENT-HKU-merged
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,6 +32,7 @@ services:
     build:
       context: .
       dockerfile: deployments/docker/Dockerfile
+<<<<<<< HEAD
     user: "0:0" # Run as root to install dependencies
     ports:
       - "0.0.0.0:${PORT:-2024}:${PORT:-2024}" # 绑定到所有网络接口，内网可访问
@@ -71,10 +83,21 @@ services:
       - LOG_TO_FILE=true
       - LOG_FILE_PATH=/app/logs/aegra.log
       - LOG_LEVEL=INFO
+=======
+    restart: unless-stopped
+    ports:
+      - "${PORT:-2026}:${PORT:-2026}"
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=postgres
+      - PYTHONPATH=/app/src:/app/quantitative_strategy_agent
+>>>>>>> origin/dev_ALAGENT-HKU-merged
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
+<<<<<<< HEAD
       - ./aegra.docker.json:/app/aegra.json:ro # 使用 Docker 专用配置
       - ./graphs:/app/graphs:ro
       - ./src:/app/src:ro # for hot reload support of server
@@ -90,12 +113,27 @@ services:
       # DinD: 挂载 Docker socket，允许容器内调用 Docker API
       - /var/run/docker.sock:/var/run/docker.sock
       - ${GCP_ADC_PATH:-/dev/null}:/app/gcp_credentials.json:ro
+=======
+      - ./aegra.json:/app/aegra.json:ro
+      - ./examples:/app/examples:ro
+      - ./libs/aegra-api/src:/app/src:ro  # Mount full src for PYTHONPATH to work
+      - ./libs/aegra-api/alembic:/app/alembic:ro # for migrations
+      - ./.env:/app/.env:ro
+      - ./auth.py:/app/auth.py:ro  # Custom auth handler
+      - ./logs:/app/logs  # Log files (when LOG_TO_FILE=true)
+      # QSA graph mount (override AEGRA_CONFIG or aegra.json to use)
+      - ${QSA_PATH:-./examples}:/app/quantitative_strategy_agent:ro
+>>>>>>> origin/dev_ALAGENT-HKU-merged
     command: >
       sh -c "
         echo 'Running database migrations...' &&
         alembic upgrade head &&
         echo 'Starting Aegra server...' &&
+<<<<<<< HEAD
         uvicorn src.agent_server.main:app --host 0.0.0.0 --port $${PORT:-2024} --reload --reload-dir /app/src --reload-dir /app/graphs --reload-dir /app/quantitative_strategy_agent
+=======
+        uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2026} --reload
+>>>>>>> origin/dev_ALAGENT-HKU-merged
       "
 
   # Redis (optional - for advanced queuing in future phases)

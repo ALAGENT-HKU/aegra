@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "dependencies": [
     "/data/whlu/ALAGENT/deepagents-quickstarts/quantitative_strategy_agent"
   ],
@@ -15,5 +16,17 @@
       "allow_methods": ["*"],
       "allow_headers": ["*"]
     }
+=======
+  "dependencies": ["./examples"],
+  "graphs": {
+    "agent": "./examples/react_agent/graph.py:graph",
+    "agent_hitl": "./examples/react_agent_hitl/graph.py:graph",
+    "subgraph_agent": "./examples/subgraph_agent/graph.py:graph",
+    "subgraph_hitl_agent": "./examples/subgraph_hitl_agent/graph.py:graph",
+    "factory": "./examples/factory/graph.py:graph"
+  },
+  "http": {
+    "app": "./examples/custom_routes_example.py:app"
+>>>>>>> origin/dev_ALAGENT-HKU-merged
   }
 }

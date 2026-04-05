@@ -142,8 +142,14 @@ elif AUTH_TYPE == "custom":
             owner_filter = {"owner": user_id}
 
             # Add owner information to metadata for create/update operations
+<<<<<<< HEAD
             metadata = value.setdefault("metadata", {})
             metadata.update(owner_filter)
+=======
+            if value.get("metadata") is None:
+                value["metadata"] = {}
+            value["metadata"].update(owner_filter)
+>>>>>>> origin/dev_ALAGENT-HKU-merged
 
             # Return filter for database operations
             return owner_filter

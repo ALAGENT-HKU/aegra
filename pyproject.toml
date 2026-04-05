@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -88,6 +89,30 @@ packages = ["src/agent_server"]
 [tool.ruff]
 line-length = 88
 target-version = "py311"
+=======
+# Root pyproject.toml - Workspace configuration + dev tools
+# The actual packages are in libs/aegra-api and libs/aegra-cli
+
+[project]
+name = "aegra-workspace"
+version = "0.0.0"
+requires-python = ">=3.12"
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["libs/*"]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.0.1",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+>>>>>>> origin/dev_ALAGENT-HKU-merged
 
 [tool.ruff.lint]
 select = [
@@ -100,6 +125,7 @@ select = [
     "UP",    # pyupgrade
     "ARG",   # flake8-unused-arguments
     "SIM",   # flake8-simplify
+<<<<<<< HEAD
     "TCH",   # flake8-type-checking
     "PTH",   # flake8-use-pathlib
     "ERA",   # eradicate (commented-out code)
@@ -179,4 +205,36 @@ dev = [
     "pytest-cov>=6.2.1",
     "pre-commit>=4.0.0",
     "bandit[toml]>=1.8.0",
+=======
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
+    "B904",   # Within an except clause, raise exceptions with `raise ... from err`
+    "ARG001", # Unused function argument
+    "ARG002", # Unused method argument
+    "ARG005", # Unused lambda argument
+    "SIM108", # Use ternary operator (less readable in many cases)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["aegra_api", "aegra_cli"]
+
+# Note: pytest config is in each package's pyproject.toml
+# Run tests from: libs/aegra-api or libs/aegra-cli
+
+# ty replaces mypy for type checking. It uses its own rule system rather than
+# mypy-style strictness flags. Severity and per-rule overrides go in
+# [tool.ty.rules]; see https://docs.astral.sh/ty/reference/rules/ for details.
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+skips = [
+    "B101",  # assert statements
+    "B404",  # import subprocess (needed for CLI)
+    "B603",  # subprocess without shell=True (needed for CLI)
+    "B607",  # partial executable path (needed for CLI to run docker, systemctl, etc.)
+>>>>>>> origin/dev_ALAGENT-HKU-merged
 ]
