@@ -33,7 +33,20 @@ def upgrade() -> None:
         ["thread_id", "message_index"],
     )
 
-    # 3. Add partial unique index on (thread_id, message_id) WHERE message_id IS NOT NULL
+    # 3. Remove duplicate (thread_id, message_id) rows before adding unique constraint
+    #    Keep the row with the highest id (most recent insert)
+    op.execute(
+        """
+        DELETE FROM message_archive
+        WHERE id NOT IN (
+            SELECT MAX(id) FROM message_archive
+            WHERE message_id IS NOT NULL
+            GROUP BY thread_id, message_id
+        ) AND message_id IS NOT NULL
+        """
+    )
+
+    # 4. Add partial unique index on (thread_id, message_id) WHERE message_id IS NOT NULL
     op.execute(
         """
         CREATE UNIQUE INDEX idx_message_archive_thread_msg_id
