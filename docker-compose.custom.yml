@@ -9,7 +9,7 @@ services:
     ports:
       - "${PG_PORT:-5442}:5432" # 外部端口，可通过 PG_PORT 修改避免冲突
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U user -d aegra" ]
       interval: 5s

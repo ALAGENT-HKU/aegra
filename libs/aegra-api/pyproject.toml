@@ -84,6 +84,10 @@ qsa = [
     "statsmodels>=0.14.0",
     "arch>=7.0.0",
     "pmdarima>=2.0.0",
+    # VNLP dependencies
+    "nltk>=3.9.1",
+    "lark>=1.2.2",
+    "pydantic>=2.11.7",
 ]
 
 [project.urls]

@@ -1,13 +1,22 @@
 {
-  "dependencies": ["./examples"],
+  "dependencies": [
+    "/app/quantitative_strategy_agent"
+  ],
   "graphs": {
-    "agent": "./examples/react_agent/graph.py:graph",
-    "agent_hitl": "./examples/react_agent_hitl/graph.py:graph",
-    "subgraph_agent": "./examples/subgraph_agent/graph.py:graph",
-    "subgraph_hitl_agent": "./examples/subgraph_hitl_agent/graph.py:graph",
-    "factory": "./examples/factory/graph.py:graph"
+    "quant_agent": "/app/quantitative_strategy_agent/qsa/agent.py:agent",
+    "paper_pipeline": "/app/quantitative_strategy_agent/qsa/pipeline_graph.py:pipeline_graph"
+  },
+  "auth": {
+    "path": "/app/auth.py:auth"
   },
   "http": {
-    "app": "./examples/custom_routes_example.py:app"
+    "app": "/app/quantitative_strategy_agent/qsa/webapp.py:app",
+    "enable_custom_route_auth": false,
+    "cors": {
+      "allow_origins": ["*"],
+      "allow_credentials": false,
+      "allow_methods": ["*"],
+      "allow_headers": ["*"]
+    }
   }
 }

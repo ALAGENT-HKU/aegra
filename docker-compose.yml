@@ -8,7 +8,7 @@ services:
     ports:
       - "5442:5432" # 外部端口 5442，避免与 Langfuse 冲突
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
@@ -28,17 +28,27 @@ services:
     environment:
       - POSTGRES_HOST=postgres
       - PYTHONPATH=/app/src:/app/quantitative_strategy_agent
+      - BASE_DATA_DIR=/app/data
+      - WORKSPACE_DIR=/app/data/workspace
+      - MEMORIES_DIR=/app/data/memories
+      - PERSIST_DIR=/app/data/database
+      - HF_HOME=/app/data/.cache/huggingface
+      - SENTENCE_TRANSFORMERS_HOME=/app/data/.cache/torch/sentence_transformers
+      - TORCH_HOME=/app/data/.cache/torch
+      - PERSIST_DIR=/app/data/database
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - ./aegra.json:/app/aegra.json:ro
+      - ../quantitative_strategy_agent/vnlp:/app/vnlp:ro
       - ./examples:/app/examples:ro
       - ./libs/aegra-api/src:/app/src:ro  # Mount full src for PYTHONPATH to work
       - ./libs/aegra-api/alembic:/app/alembic:ro # for migrations
       - ./.env:/app/.env:ro
       - ./auth.py:/app/auth.py:ro  # Custom auth handler
       - ./logs:/app/logs  # Log files (when LOG_TO_FILE=true)
+      - ../data:/app/data  # Shared data dir (workspace, memories, database)
       # QSA graph mount (override AEGRA_CONFIG or aegra.json to use)
       - ${QSA_PATH:-./examples}:/app/quantitative_strategy_agent:ro
     command: >
