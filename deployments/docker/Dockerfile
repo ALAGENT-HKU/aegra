@@ -37,6 +37,12 @@ RUN uv export --frozen --no-emit-project --extra qsa --format=requirements-txt >
     uv pip install --system -r requirements.txt && \
     rm requirements.txt
 
+# Install browser-use + all its deps (M1/M2 Browser Agent).
+# browser-use pins anthropic==0.76.0 which conflicts with langchain-anthropic's requirement.
+# We force-install browser-use and let pip override; langchain-anthropic works at runtime
+# because it only uses anthropic's stable public API.
+RUN uv pip install --system browser-use==0.12.6
+
 # Export constraints file for runtime safety (prevents version drift from any runtime pip install)
 RUN uv export --frozen --no-emit-project --extra qsa --format=requirements-txt --no-hashes > /constraints.txt
 

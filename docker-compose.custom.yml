@@ -69,9 +69,14 @@ services:
       - HF_HOME=/app/data/.hf_cache
       # PDF extraction: pages with more drawings than this use fitz fallback
       - PDF_DRAWING_THRESHOLD=${PDF_DRAWING_THRESHOLD:-10000}
+      # Browser Agent (browser-use) CDP connection
+      - BROWSER_CDP_URL=${BROWSER_CDP_URL:-ws://chrome:3000}
+      - BROWSER_ALLOWED_DOMAINS=${BROWSER_ALLOWED_DOMAINS:-}
     depends_on:
       postgres:
         condition: service_healthy
+      chrome:
+        condition: service_started
     volumes:
       - ./aegra.docker.json:/app/aegra.json:ro # 使用 Docker 专用配置
       - ./libs/aegra-api/src:/app/src:ro # Mount full src for PYTHONPATH and hot reload
@@ -88,6 +93,8 @@ services:
       # DinD: 挂载 Docker socket，允许容器内调用 Docker API
       - /var/run/docker.sock:/var/run/docker.sock
       - ${GCP_ADC_PATH:-/dev/null}:/app/gcp_credentials.json:ro
+      # Browser profile persistence (cookies, localStorage, extensions)
+      - browser_profile:/app/data/browser_profile
     # GPU passthrough for embedding model acceleration
     deploy:
       resources:
@@ -116,6 +123,22 @@ services:
     profiles:
       - redis
 
+  # Chrome sidecar for Browser Agent (browser-use connects via CDP)
+  # Always started — aegra depends on it for browser-agent research
+  chrome:
+    image: browserless/chrome:latest
+    ports:
+      - "${BROWSER_CDP_PORT:-9222}:3000"
+    environment:
+      - MAX_CONCURRENT_SESSIONS=${BROWSER_MAX_CONCURRENT:-3}
+      - CONNECTION_TIMEOUT=300000
+      - TIMEOUT=300000
+    deploy:
+      resources:
+        limits:
+          memory: ${BROWSER_MEMORY_LIMIT:-8g}
+
 volumes:
   postgres_data:
   redis_data:
+  browser_profile:
