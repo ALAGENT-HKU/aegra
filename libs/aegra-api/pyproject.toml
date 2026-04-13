@@ -84,6 +84,8 @@ qsa = [
     "statsmodels>=0.14.0",
     "arch>=7.0.0",
     "pmdarima>=2.0.0",
+    # Observability
+    "langfuse>=2.0.0",
 ]
 
 [project.urls]
