@@ -72,6 +72,16 @@ services:
       # Browser Agent (browser-use) CDP connection
       - BROWSER_CDP_URL=${BROWSER_CDP_URL:-ws://chrome:3000}
       - BROWSER_ALLOWED_DOMAINS=${BROWSER_ALLOWED_DOMAINS:-}
+      # Stripe billing
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_PRO_PRICE_ID=${STRIPE_PRO_PRICE_ID:-}
+      - STRIPE_MAX_PRICE_ID=${STRIPE_MAX_PRICE_ID:-}
+      - STRIPE_TOPUP_PRICE_ID=${STRIPE_TOPUP_PRICE_ID:-}
+      - STRIPE_TOPUP_MAX_PRICE_ID=${STRIPE_TOPUP_MAX_PRICE_ID:-}
+      - STRIPE_SUCCESS_URL=${STRIPE_SUCCESS_URL:-}
+      - STRIPE_CANCEL_URL=${STRIPE_CANCEL_URL:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -107,6 +117,8 @@ services:
       sh -c "
         echo 'Installing QSA package (editable, no deps - deps already in image via uv.lock)...' &&
         pip install --no-deps -e /app/quantitative_strategy_agent 2>/dev/null;
+        echo 'Installing additional runtime dependencies...' &&
+        pip install stripe 2>/dev/null;
         echo 'Running database migrations...' &&
         alembic upgrade head &&
         echo 'Starting Aegra server...' &&
