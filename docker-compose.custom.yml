@@ -64,7 +64,7 @@ services:
       - LOG_FILE_PATH=/app/logs/aegra.log
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       # Embedding model settings
-      - EMBEDDING_DEVICE=${EMBEDDING_DEVICE:-cuda}
+      - EMBEDDING_DEVICE=${EMBEDDING_DEVICE:-cpu}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-BAAI/bge-small-en-v1.5}
       - HF_HOME=/app/data/.hf_cache
       # PDF extraction: pages with more drawings than this use fitz fallback
@@ -150,7 +150,15 @@ services:
         limits:
           memory: ${BROWSER_MEMORY_LIMIT:-8g}
 
+  # GPU is enabled by default. For local dev without GPU, use:
+  #   docker compose -f docker-compose.custom.yml -f docker-compose.no-gpu.yml up
+
 volumes:
   postgres_data:
   redis_data:
   browser_profile:
+  
+networks:
+  default:
+    name: alagent_network
+    external: true
