@@ -67,6 +67,8 @@ services:
       - EMBEDDING_DEVICE=${EMBEDDING_DEVICE:-cpu}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-BAAI/bge-small-en-v1.5}
       - HF_HOME=/app/data/.hf_cache
+      # HuggingFace mirror for regions where huggingface.co is blocked (e.g. mainland China)
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
       # PDF extraction: pages with more drawings than this use fitz fallback
       - PDF_DRAWING_THRESHOLD=${PDF_DRAWING_THRESHOLD:-10000}
       # Browser Agent (browser-use) CDP connection
