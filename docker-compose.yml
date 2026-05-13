@@ -36,6 +36,10 @@ services:
       - SENTENCE_TRANSFORMERS_HOME=/app/data/.cache/torch/sentence_transformers
       - TORCH_HOME=/app/data/.cache/torch
       - PERSIST_DIR=/app/data/database
+      - REDIS_URL=${REDIS_URL:-redis://host.docker.internal:6379/0}
+    networks:
+      - default
+      - chatnio_chatnio-network
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,3 +76,8 @@ services:
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  default: {}
+  chatnio_chatnio-network:
+    external: true

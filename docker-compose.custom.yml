@@ -57,7 +57,7 @@ services:
       # External services — defaults for ALAGENT-HKU internal network
       - USER_DATABASE_URL=${USER_DATABASE_URL:-postgresql+asyncpg://alagent:alagent@202.45.128.237:5435/alagent}
       - LANGFUSE_HOST=${LANGFUSE_HOST:-http://202.45.128.237:7312}
-      - REDIS_URL=${REDIS_URL:-redis://host.docker.internal:6380/0}
+      - REDIS_URL=${REDIS_URL:-redis://host.docker.internal:6379/0}
       - BG_JOB_ISOLATED_LOOPS=false
       - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-noreply@alagentai.com}
       - LOG_TO_FILE=true

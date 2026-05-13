@@ -63,14 +63,19 @@ RUN python -m nltk.downloader -d /usr/local/share/nltk_data punkt averaged_perce
 # -----------------------------
 FROM base AS final
 
-# Install only minimal runtime libs
+# Install only minimal runtime libs + Node.js (required for claude Code CLI)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     libpq-dev \
     build-essential \
     git \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Claude Code CLI globally
+RUN npm install -g @anthropic-ai/claude-code
 
 # Copy installed Python packages from the builder stage.
 COPY --from=builder /usr/local/lib/python${PY_VERSION}/site-packages/ /usr/local/lib/python${PY_VERSION}/site-packages/
