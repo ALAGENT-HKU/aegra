@@ -581,6 +581,18 @@ def inject_user_context(user: Any | None, base_config: dict[str, Any] | None = N
                 # Fallback: minimal dict if to_dict unavailable or fails
                 config["configurable"]["langgraph_auth_user"] = {"identity": user.identity}
 
+
+        # Map subscription plan to tier for downstream backends (e.g. DockerSessionBackend)
+        plan = getattr(user, "subscription_plan", None) or getattr(user, "plan", None)
+        if not plan:
+            # Try extracting from dict-like user objects
+            try:
+                user_dict = user.to_dict() if hasattr(user, "to_dict") else {}
+                plan = user_dict.get("subscription_plan", user_dict.get("plan"))
+            except Exception:
+                pass
+        if plan:
+            config["configurable"].setdefault("tier", plan)
     return config
 
 
