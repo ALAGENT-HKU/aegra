@@ -34,6 +34,7 @@ COPY uv.lock ./
 # Install dependencies from lockfile (includes dev deps for example agents + QSA deps).
 # --extra qsa: include quantitative_strategy_agent optional dependencies (deepagents, langchain, etc.)
 RUN uv export --frozen --no-emit-project --extra qsa --format=requirements-txt > requirements.txt && \
+    cat requirements.txt && \
     uv pip install --system -r requirements.txt && \
     rm requirements.txt
 
@@ -54,19 +55,27 @@ COPY libs/aegra-api/alembic/ ./alembic/
 # Install the project package itself.
 RUN uv pip install --system --no-deps .
 
+# Download NLTK data AFTER installing all packages (including nltk from qsa extras)
+RUN python -m nltk.downloader -d /usr/local/share/nltk_data punkt averaged_perceptron_tagger_eng universal_tagset
+
 # -----------------------------
 # Final, minimal runtime image
 # -----------------------------
 FROM base AS final
 
-# Install only minimal runtime libs
+# Install only minimal runtime libs + Node.js (required for claude Code CLI)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     libpq-dev \
     build-essential \
     git \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Claude Code CLI globally
+RUN npm install -g @anthropic-ai/claude-code
 
 # Copy installed Python packages from the builder stage.
 COPY --from=builder /usr/local/lib/python${PY_VERSION}/site-packages/ /usr/local/lib/python${PY_VERSION}/site-packages/
@@ -74,6 +83,9 @@ COPY --from=builder /usr/local/bin/ /usr/local/bin/
 
 # Copy constraints file for runtime pip install safety
 COPY --from=builder /constraints.txt /constraints.txt
+# Copy NLTK data from builder
+COPY --from=builder /usr/local/share/nltk_data /usr/local/share/nltk_data
+ENV NLTK_DATA=/usr/local/share/nltk_data
 
 # Copy runtime assets required by the app and alembic
 COPY libs/aegra-api/alembic.ini ./alembic.ini
@@ -82,6 +94,8 @@ COPY aegra.json ./aegra.json
 COPY examples/ ./examples/
 
 EXPOSE 2026
+# Add vnlp to PYTHONPATH
+ENV PYTHONPATH=/app:/app/vnlp:$PYTHONPATH
 
 # Run as non-root
 USER app
