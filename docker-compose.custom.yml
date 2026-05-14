@@ -72,6 +72,8 @@ services:
       # Browser Agent (browser-use) CDP connection
       - BROWSER_CDP_URL=${BROWSER_CDP_URL:-ws://chrome:3000}
       - BROWSER_ALLOWED_DOMAINS=${BROWSER_ALLOWED_DOMAINS:-}
+      # PR-C: Codegen backend selection (vnlp = legacy 3-step chain; monolithic = single Claude Code CLI)
+      - CODEGEN_BACKEND=${CODEGEN_BACKEND:-vnlp}
       # Stripe billing
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
       - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
