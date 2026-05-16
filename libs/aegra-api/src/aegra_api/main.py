@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute, APIRouter
 
 from aegra_api.api.assistants import router as assistants_router
+from aegra_api.api.runs import active_runs as run_tasks
 from aegra_api.api.runs import router as runs_router
 from aegra_api.api.stateless_runs import router as stateless_runs_router
 from aegra_api.api.store import router as store_router
@@ -34,9 +35,6 @@ from aegra_api.services.event_store import event_store
 from aegra_api.services.langgraph_service import get_langgraph_service
 from aegra_api.settings import settings
 from aegra_api.utils.setup_logging import setup_logging
-
-# Task management for run cancellation
-active_runs: dict[str, asyncio.Task] = {}
 
 OPENAPI_TAGS: list[dict[str, Any]] = [
     {"name": "Assistants", "description": "A configured instance of a graph."},
@@ -100,9 +98,21 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     yield
 
     # Shutdown: Clean up connections and cancel active runs
-    for task in active_runs.values():
-        if not task.done():
+    pending_run_tasks = [task for task in list(run_tasks.values()) if not task.done()]
+    if pending_run_tasks:
+        logger.info("Cancelling active runs during shutdown", run_count=len(pending_run_tasks))
+        for task in pending_run_tasks:
             task.cancel()
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(*pending_run_tasks, return_exceptions=True),
+                timeout=15.0,
+            )
+        except TimeoutError:
+            logger.warning(
+                "Timed out waiting for cancelled runs to finish during shutdown",
+                run_count=len(pending_run_tasks),
+            )
 
     # Stop event store cleanup task
     await event_store.stop_cleanup_task()

@@ -31,6 +31,7 @@ services:
       # --- Infrastructure (inter-service, must be hardcoded) ---
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/aegra
       - PYTHONPATH=/app/src:/app/quantitative_strategy_agent
+      - PYTHONDONTWRITEBYTECODE=1
       - AUTH_TYPE=custom
       - DEBUG=${DEBUG:-false}
       - PORT=${PORT:-2024}
@@ -126,7 +127,25 @@ services:
         echo 'Running database migrations...' &&
         alembic upgrade head &&
         echo 'Starting Aegra server...' &&
-        uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2024} --reload --reload-dir /app/src --reload-dir /app/quantitative_strategy_agent
+        if [ \"$${UVICORN_RELOAD:-false}\" = \"true\" ]; then
+          uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2024} --reload \
+            --reload-dir /app/src \
+            --reload-dir /app/quantitative_strategy_agent \
+            --reload-exclude '*.pyc' \
+            --reload-exclude '*.pyo' \
+            --reload-exclude '*/__pycache__/*' \
+            --reload-exclude '*/.pytest_cache/*' \
+            --reload-exclude '*/.mypy_cache/*' \
+            --reload-exclude '*/.ruff_cache/*' \
+            --reload-exclude '*/.git/*' \
+            --reload-exclude '*/.venv/*' \
+            --reload-exclude '*/site-packages/*' \
+            --reload-exclude '*/dist/*' \
+            --reload-exclude '*/build/*' \
+            --reload-exclude '*/.egg-info/*';
+        else
+          uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2024};
+        fi
       "
 
   # Redis (optional - for advanced queuing in future phases)
