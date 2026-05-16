@@ -31,6 +31,7 @@ services:
       # --- Infrastructure (inter-service, must be hardcoded) ---
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/aegra
       - PYTHONPATH=/app/src:/app/quantitative_strategy_agent
+      - PYTHONDONTWRITEBYTECODE=1
       - AUTH_TYPE=custom
       - DEBUG=${DEBUG:-false}
       - PORT=${PORT:-2024}
@@ -55,8 +56,10 @@ services:
       - DOCKER_TIMEOUT=${DOCKER_TIMEOUT:-300}
       - DOCKER_MEMORY_LIMIT=${DOCKER_MEMORY_LIMIT:-4g}
       # External services — defaults for ALAGENT-HKU internal network
-      - USER_DATABASE_URL=${USER_DATABASE_URL:-postgresql+asyncpg://alagent:alagent@202.45.128.237:5435/alagent}
-      - LANGFUSE_HOST=${LANGFUSE_HOST:-http://202.45.128.237:7312}
+      # - USER_DATABASE_URL=${USER_DATABASE_URL:-postgresql+asyncpg://alagent:alagent@202.45.128.237:5435/alagent}
+      - USER_DATABASE_URL=${USER_DATABASE_URL:-postgresql+asyncpg://alagent:alagent@host.docker.internal:5435/alagent}
+      - LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL:-https://langfuse.alagentai.cn}
+      - LANGFUSE_HOST=${LANGFUSE_HOST:-https://langfuse.alagentai.cn}
       - REDIS_URL=${REDIS_URL:-redis://host.docker.internal:6380/0}
       - BG_JOB_ISOLATED_LOOPS=false
       - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-noreply@alagentai.com}
@@ -67,8 +70,19 @@ services:
       - EMBEDDING_DEVICE=${EMBEDDING_DEVICE:-cpu}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-BAAI/bge-small-en-v1.5}
       - HF_HOME=/app/data/.hf_cache
-      # HuggingFace mirror for regions where huggingface.co is blocked (e.g. mainland China)
-      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
+      # Prefer direct Hugging Face and let the host Mihomo proxy handle routing.
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://huggingface.co}
+      - http_proxy=${CONTAINER_HTTP_PROXY:-http://host.docker.internal:7777}
+      - https_proxy=${CONTAINER_HTTPS_PROXY:-http://host.docker.internal:7777}
+      - HTTP_PROXY=${CONTAINER_HTTP_PROXY:-http://host.docker.internal:7777}
+      - HTTPS_PROXY=${CONTAINER_HTTPS_PROXY:-http://host.docker.internal:7777}
+      # Bypass the HTTP proxy for host-side infrastructure dependencies.
+      - no_proxy=${CONTAINER_NO_PROXY:-localhost,127.0.0.1,::1,host.docker.internal,172.17.0.1,postgres,redis,chrome}
+      - NO_PROXY=${CONTAINER_NO_PROXY:-localhost,127.0.0.1,::1,host.docker.internal,172.17.0.1,postgres,redis,chrome}
+      # Internal host-side data service used by QSA data pipeline.
+      - ALADATA_SERVER_PROTOCOL=${ALADATA_SERVER_PROTOCOL:-http}
+      - ALADATA_SERVER_HOST=${ALADATA_SERVER_HOST:-host.docker.internal}
+      - ALADATA_SERVER_PORT=${ALADATA_SERVER_PORT:-7000}
       # PDF extraction: pages with more drawings than this use fitz fallback
       - PDF_DRAWING_THRESHOLD=${PDF_DRAWING_THRESHOLD:-10000}
       # Browser Agent (browser-use) CDP connection
@@ -124,7 +138,25 @@ services:
         echo 'Running database migrations...' &&
         alembic upgrade head &&
         echo 'Starting Aegra server...' &&
-        uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2024} --reload --reload-dir /app/src --reload-dir /app/quantitative_strategy_agent
+        if [ \"$${UVICORN_RELOAD:-false}\" = \"true\" ]; then
+          uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2024} --reload \
+            --reload-dir /app/src \
+            --reload-dir /app/quantitative_strategy_agent \
+            --reload-exclude '*.pyc' \
+            --reload-exclude '*.pyo' \
+            --reload-exclude '*/__pycache__/*' \
+            --reload-exclude '*/.pytest_cache/*' \
+            --reload-exclude '*/.mypy_cache/*' \
+            --reload-exclude '*/.ruff_cache/*' \
+            --reload-exclude '*/.git/*' \
+            --reload-exclude '*/.venv/*' \
+            --reload-exclude '*/site-packages/*' \
+            --reload-exclude '*/dist/*' \
+            --reload-exclude '*/build/*' \
+            --reload-exclude '*/.egg-info/*';
+        else
+          uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2024};
+        fi
       "
 
   # Redis (optional - for advanced queuing in future phases)

@@ -28,6 +28,7 @@ services:
     environment:
       - POSTGRES_HOST=postgres
       - PYTHONPATH=/app/src:/app/quantitative_strategy_agent
+      - PYTHONDONTWRITEBYTECODE=1
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,7 +47,23 @@ services:
         echo 'Running database migrations...' &&
         alembic upgrade head &&
         echo 'Starting Aegra server...' &&
-        uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2026} --reload
+        if [ \"$${UVICORN_RELOAD:-false}\" = \"true\" ]; then
+          uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2026} --reload \
+            --reload-exclude '*.pyc' \
+            --reload-exclude '*.pyo' \
+            --reload-exclude '*/__pycache__/*' \
+            --reload-exclude '*/.pytest_cache/*' \
+            --reload-exclude '*/.mypy_cache/*' \
+            --reload-exclude '*/.ruff_cache/*' \
+            --reload-exclude '*/.git/*' \
+            --reload-exclude '*/.venv/*' \
+            --reload-exclude '*/site-packages/*' \
+            --reload-exclude '*/dist/*' \
+            --reload-exclude '*/build/*' \
+            --reload-exclude '*/.egg-info/*';
+        else
+          uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2026};
+        fi
       "
 
   # Redis (optional - for advanced queuing in future phases)
