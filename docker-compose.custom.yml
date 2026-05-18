@@ -27,77 +27,6 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway" # 允许容器访问主机服务
     env_file: [.env]
-    environment:
-      # --- Infrastructure (inter-service, must be hardcoded) ---
-      - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/aegra
-      - PYTHONPATH=/app/src:/app/quantitative_strategy_agent
-      - PYTHONDONTWRITEBYTECODE=1
-      - AUTH_TYPE=custom
-      - DEBUG=${DEBUG:-false}
-      - PORT=${PORT:-2024}
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp_credentials.json
-      # Database connection pool
-      - SA_POOL_SIZE=${SA_POOL_SIZE:-10}
-      - SA_MAX_OVERFLOW=${SA_MAX_OVERFLOW:-5}
-      - LG_POOL_SIZE=${LG_POOL_SIZE:-20}
-      - LG_MIN_POOL_SIZE=${LG_MIN_POOL_SIZE:-5}
-      # Container data paths (fixed)
-      - BASE_DATA_DIR=/app/data
-      - WORKSPACE_DIR=/app/data/workspace
-      - MEMORIES_DIR=/app/data/memories
-      - PERSIST_DIR=/app/data/database
-      # DinD host paths — populated by setup_environment.sh into .env
-      - HOST_BASE_DATA_DIR=${HOST_BASE_DATA_DIR:-/app/data}
-      - HOST_WORKSPACE_DIR=${HOST_WORKSPACE_DIR:-/app/data/workspace}
-      - HOST_PERSIST_DIR=${HOST_PERSIST_DIR:-/app/data/database}
-      - HOST_REPO_DIR=${HOST_REPO_DIR:-/app}
-      # Docker execution (backtestlite)
-      - DOCKER_IMAGE=${DOCKER_IMAGE:-backtestlite-slave:latest}
-      - DOCKER_TIMEOUT=${DOCKER_TIMEOUT:-300}
-      - DOCKER_MEMORY_LIMIT=${DOCKER_MEMORY_LIMIT:-4g}
-      # External services — defaults for ALAGENT-HKU internal network
-      # - USER_DATABASE_URL=${USER_DATABASE_URL:-postgresql+asyncpg://alagent:alagent@202.45.128.237:5435/alagent}
-      - USER_DATABASE_URL=${USER_DATABASE_URL:-postgresql+asyncpg://alagent:alagent@host.docker.internal:5435/alagent}
-      - LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL:-https://langfuse.alagentai.cn}
-      - LANGFUSE_HOST=${LANGFUSE_HOST:-https://langfuse.alagentai.cn}
-      - REDIS_URL=${REDIS_URL:-redis://host.docker.internal:6380/0}
-      - BG_JOB_ISOLATED_LOOPS=false
-      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-noreply@alagentai.com}
-      - LOG_TO_FILE=true
-      - LOG_FILE_PATH=/app/logs/aegra.log
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      # Embedding model settings
-      - EMBEDDING_DEVICE=${EMBEDDING_DEVICE:-cpu}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-BAAI/bge-small-en-v1.5}
-      - HF_HOME=/app/data/.hf_cache
-      # Prefer direct Hugging Face and let the host Mihomo proxy handle routing.
-      - HF_ENDPOINT=${HF_ENDPOINT:-https://huggingface.co}
-      - http_proxy=${CONTAINER_HTTP_PROXY:-http://host.docker.internal:7777}
-      - https_proxy=${CONTAINER_HTTPS_PROXY:-http://host.docker.internal:7777}
-      - HTTP_PROXY=${CONTAINER_HTTP_PROXY:-http://host.docker.internal:7777}
-      - HTTPS_PROXY=${CONTAINER_HTTPS_PROXY:-http://host.docker.internal:7777}
-      # Bypass the HTTP proxy for host-side infrastructure dependencies.
-      - no_proxy=${CONTAINER_NO_PROXY:-localhost,127.0.0.1,::1,host.docker.internal,172.17.0.1,postgres,redis,chrome}
-      - NO_PROXY=${CONTAINER_NO_PROXY:-localhost,127.0.0.1,::1,host.docker.internal,172.17.0.1,postgres,redis,chrome}
-      # Internal host-side data service used by QSA data pipeline.
-      - ALADATA_SERVER_PROTOCOL=${ALADATA_SERVER_PROTOCOL:-http}
-      - ALADATA_SERVER_HOST=${ALADATA_SERVER_HOST:-host.docker.internal}
-      - ALADATA_SERVER_PORT=${ALADATA_SERVER_PORT:-7000}
-      # PDF extraction: pages with more drawings than this use fitz fallback
-      - PDF_DRAWING_THRESHOLD=${PDF_DRAWING_THRESHOLD:-10000}
-      # Browser Agent (browser-use) CDP connection
-      - BROWSER_CDP_URL=${BROWSER_CDP_URL:-ws://chrome:3000}
-      - BROWSER_ALLOWED_DOMAINS=${BROWSER_ALLOWED_DOMAINS:-}
-      # Stripe billing
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
-      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
-      - STRIPE_PRO_PRICE_ID=${STRIPE_PRO_PRICE_ID:-}
-      - STRIPE_MAX_PRICE_ID=${STRIPE_MAX_PRICE_ID:-}
-      - STRIPE_TOPUP_PRICE_ID=${STRIPE_TOPUP_PRICE_ID:-}
-      - STRIPE_TOPUP_MAX_PRICE_ID=${STRIPE_TOPUP_MAX_PRICE_ID:-}
-      - STRIPE_SUCCESS_URL=${STRIPE_SUCCESS_URL:-}
-      - STRIPE_CANCEL_URL=${STRIPE_CANCEL_URL:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -134,7 +63,7 @@ services:
         echo 'Installing QSA package (editable, no deps - deps already in image via uv.lock)...' &&
         pip install --no-deps -e /app/quantitative_strategy_agent 2>/dev/null;
         echo 'Installing additional runtime dependencies...' &&
-        pip install stripe 2>/dev/null;
+        pip install stripe socksio 2>/dev/null;
         echo 'Running database migrations...' &&
         alembic upgrade head &&
         echo 'Starting Aegra server...' &&
@@ -184,8 +113,8 @@ services:
         limits:
           memory: ${BROWSER_MEMORY_LIMIT:-8g}
 
-  # GPU is enabled by default. For local dev without GPU, use:
-  #   docker compose -f docker-compose.custom.yml -f docker-compose.no-gpu.yml up
+  # GPU is disabled by default for portable deployment.
+  # Add a GPU override file on hosts that require embedding acceleration.
 
 volumes:
   postgres_data:
