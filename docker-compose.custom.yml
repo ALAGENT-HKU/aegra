@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: aegra
     ports:
-      - "${PG_PORT:-5442}:5432" # 外部端口，可通过 PG_PORT 修改避免冲突
+      - "${PG_PORT:-5447}:5432" # 外部端口，由 config/ports*.env 生成的 PG_PORT 控制
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -23,7 +23,7 @@ services:
       dockerfile: deployments/docker/Dockerfile
     user: "0:0" # Run as root to install dependencies
     ports:
-      - "0.0.0.0:${PORT:-2024}:${PORT:-2024}" # 绑定到所有网络接口，内网可访问
+      - "0.0.0.0:${PORT:-2026}:${PORT:-2026}" # 绑定到所有网络接口，内网可访问
     extra_hosts:
       - "host.docker.internal:host-gateway" # 允许容器访问主机服务
     env_file: [.env]
@@ -68,7 +68,7 @@ services:
         alembic upgrade head &&
         echo 'Starting Aegra server...' &&
         if [ \"$${UVICORN_RELOAD:-false}\" = \"true\" ]; then
-          uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2024} --reload \
+          uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2026} --reload \
             --reload-dir /app/src \
             --reload-dir /app/quantitative_strategy_agent \
             --reload-exclude '*.pyc' \
@@ -84,7 +84,7 @@ services:
             --reload-exclude '*/build/*' \
             --reload-exclude '*/.egg-info/*';
         else
-          uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2024};
+          uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2026};
         fi
       "
 
@@ -113,8 +113,8 @@ services:
         limits:
           memory: ${BROWSER_MEMORY_LIMIT:-8g}
 
-  # GPU is disabled by default for portable deployment.
-  # Add a GPU override file on hosts that require embedding acceleration.
+  # GPU passthrough is enabled by default for embedding acceleration.
+  # Use docker-compose.no-gpu.yml on hosts without NVIDIA GPU.
 
 volumes:
   postgres_data:
