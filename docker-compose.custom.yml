@@ -7,9 +7,9 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: aegra
     ports:
-      - "${PG_PORT:-5442}:5432" # 外部端口，可通过 PG_PORT 修改避免冲突
+      - "${PG_PORT:-5447}:5432" # 外部端口，由 config/ports*.env 生成的 PG_PORT 控制
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U user -d aegra" ]
       interval: 5s
@@ -23,70 +23,10 @@ services:
       dockerfile: deployments/docker/Dockerfile
     user: "0:0" # Run as root to install dependencies
     ports:
-      - "0.0.0.0:${PORT:-2024}:${PORT:-2024}" # 绑定到所有网络接口，内网可访问
+      - "0.0.0.0:${PORT:-2026}:${PORT:-2026}" # 绑定到所有网络接口，内网可访问
     extra_hosts:
       - "host.docker.internal:host-gateway" # 允许容器访问主机服务
     env_file: [.env]
-    environment:
-      # --- Infrastructure (inter-service, must be hardcoded) ---
-      - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/aegra
-      - PYTHONPATH=/app/src:/app/quantitative_strategy_agent
-      - PYTHONDONTWRITEBYTECODE=1
-      - AUTH_TYPE=custom
-      - DEBUG=${DEBUG:-false}
-      - PORT=${PORT:-2024}
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp_credentials.json
-      # Database connection pool
-      - SA_POOL_SIZE=${SA_POOL_SIZE:-10}
-      - SA_MAX_OVERFLOW=${SA_MAX_OVERFLOW:-5}
-      - LG_POOL_SIZE=${LG_POOL_SIZE:-20}
-      - LG_MIN_POOL_SIZE=${LG_MIN_POOL_SIZE:-5}
-      # Container data paths (fixed)
-      - BASE_DATA_DIR=/app/data
-      - WORKSPACE_DIR=/app/data/workspace
-      - MEMORIES_DIR=/app/data/memories
-      - PERSIST_DIR=/app/data/database
-      # DinD host paths — populated by setup_environment.sh into .env
-      - HOST_BASE_DATA_DIR=${HOST_BASE_DATA_DIR:-/app/data}
-      - HOST_WORKSPACE_DIR=${HOST_WORKSPACE_DIR:-/app/data/workspace}
-      - HOST_PERSIST_DIR=${HOST_PERSIST_DIR:-/app/data/database}
-      - HOST_REPO_DIR=${HOST_REPO_DIR:-/app}
-      # Docker execution (backtestlite)
-      - DOCKER_IMAGE=${DOCKER_IMAGE:-backtestlite-slave:latest}
-      - DOCKER_TIMEOUT=${DOCKER_TIMEOUT:-300}
-      - DOCKER_MEMORY_LIMIT=${DOCKER_MEMORY_LIMIT:-4g}
-      # External services — defaults for ALAGENT-HKU internal network
-      - USER_DATABASE_URL=${USER_DATABASE_URL:-postgresql+asyncpg://alagent:alagent@202.45.128.237:5435/alagent}
-      - LANGFUSE_HOST=${LANGFUSE_HOST:-http://202.45.128.237:7312}
-      - REDIS_URL=${REDIS_URL:-redis://host.docker.internal:6379/0}
-      - BG_JOB_ISOLATED_LOOPS=false
-      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-noreply@alagentai.com}
-      - LOG_TO_FILE=true
-      - LOG_FILE_PATH=/app/logs/aegra.log
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      # Embedding model settings
-      - EMBEDDING_DEVICE=${EMBEDDING_DEVICE:-cpu}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-BAAI/bge-small-en-v1.5}
-      - HF_HOME=/app/data/.hf_cache
-      # HuggingFace mirror for regions where huggingface.co is blocked (e.g. mainland China)
-      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
-      # PDF extraction: pages with more drawings than this use fitz fallback
-      - PDF_DRAWING_THRESHOLD=${PDF_DRAWING_THRESHOLD:-10000}
-      # Browser Agent (browser-use) CDP connection
-      - BROWSER_CDP_URL=${BROWSER_CDP_URL:-ws://chrome:3000}
-      - BROWSER_ALLOWED_DOMAINS=${BROWSER_ALLOWED_DOMAINS:-}
-      # PR-C: Codegen backend selection (vnlp = legacy 3-step chain; monolithic = single Claude Code CLI)
-      - CODEGEN_BACKEND=${CODEGEN_BACKEND:-vnlp}
-      # Stripe billing
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
-      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
-      - STRIPE_PRO_PRICE_ID=${STRIPE_PRO_PRICE_ID:-}
-      - STRIPE_MAX_PRICE_ID=${STRIPE_MAX_PRICE_ID:-}
-      - STRIPE_TOPUP_PRICE_ID=${STRIPE_TOPUP_PRICE_ID:-}
-      - STRIPE_TOPUP_MAX_PRICE_ID=${STRIPE_TOPUP_MAX_PRICE_ID:-}
-      - STRIPE_SUCCESS_URL=${STRIPE_SUCCESS_URL:-}
-      - STRIPE_CANCEL_URL=${STRIPE_CANCEL_URL:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -123,12 +63,12 @@ services:
         echo 'Installing QSA package (editable, no deps - deps already in image via uv.lock)...' &&
         pip install --no-deps -e /app/quantitative_strategy_agent 2>/dev/null;
         echo 'Installing additional runtime dependencies...' &&
-        pip install stripe 2>/dev/null;
+        pip install stripe socksio 2>/dev/null;
         echo 'Running database migrations...' &&
         alembic upgrade head &&
         echo 'Starting Aegra server...' &&
         if [ \"$${UVICORN_RELOAD:-false}\" = \"true\" ]; then
-          uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2024} --reload \
+          uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2026} --reload \
             --reload-dir /app/src \
             --reload-dir /app/quantitative_strategy_agent \
             --reload-exclude '*.pyc' \
@@ -144,7 +84,7 @@ services:
             --reload-exclude '*/build/*' \
             --reload-exclude '*/.egg-info/*';
         else
-          uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2024};
+          uvicorn aegra_api.main:app --host 0.0.0.0 --port $${PORT:-2026};
         fi
       "
 
@@ -173,8 +113,8 @@ services:
         limits:
           memory: ${BROWSER_MEMORY_LIMIT:-8g}
 
-  # GPU is enabled by default. For local dev without GPU, use:
-  #   docker compose -f docker-compose.custom.yml -f docker-compose.no-gpu.yml up
+  # GPU passthrough is enabled by default for embedding acceleration.
+  # Use docker-compose.no-gpu.yml on hosts without NVIDIA GPU.
 
 volumes:
   postgres_data:

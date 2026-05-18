@@ -29,31 +29,17 @@ services:
       - POSTGRES_HOST=postgres
       - PYTHONPATH=/app/src:/app/quantitative_strategy_agent
       - PYTHONDONTWRITEBYTECODE=1
-      - BASE_DATA_DIR=/app/data
-      - WORKSPACE_DIR=/app/data/workspace
-      - MEMORIES_DIR=/app/data/memories
-      - PERSIST_DIR=/app/data/database
-      - HF_HOME=/app/data/.cache/huggingface
-      - SENTENCE_TRANSFORMERS_HOME=/app/data/.cache/torch/sentence_transformers
-      - TORCH_HOME=/app/data/.cache/torch
-      - PERSIST_DIR=/app/data/database
-      - REDIS_URL=${REDIS_URL:-redis://host.docker.internal:6379/0}
-    networks:
-      - default
-      - chatnio_chatnio-network
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - ./aegra.json:/app/aegra.json:ro
-      - ../quantitative_strategy_agent/vnlp:/app/vnlp:ro
       - ./examples:/app/examples:ro
       - ./libs/aegra-api/src:/app/src:ro  # Mount full src for PYTHONPATH to work
       - ./libs/aegra-api/alembic:/app/alembic:ro # for migrations
       - ./.env:/app/.env:ro
       - ./auth.py:/app/auth.py:ro  # Custom auth handler
       - ./logs:/app/logs  # Log files (when LOG_TO_FILE=true)
-      - ../data:/app/data  # Shared data dir (workspace, memories, database)
       # QSA graph mount (override AEGRA_CONFIG or aegra.json to use)
       - ${QSA_PATH:-./examples}:/app/quantitative_strategy_agent:ro
     command: >
@@ -93,8 +79,3 @@ services:
 volumes:
   postgres_data:
   redis_data:
-
-networks:
-  default: {}
-  chatnio_chatnio-network:
-    external: true
