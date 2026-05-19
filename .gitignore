@@ -37,3 +37,6 @@ htmlcov/
 # Logs
 logs/
 *.log
+.env.bak.20260518_162848
+.env.bak.20260518_164300
+.env.bak.1778735839
