@@ -76,6 +76,7 @@ qsa = [
     { name = "redis", extra = ["hiredis"] },
     { name = "sentence-transformers" },
     { name = "statsmodels" },
+    { name = "stripe" },
     { name = "yfinance" },
 ]
 
@@ -145,6 +146,7 @@ requires-dist = [
     { name = "sentence-transformers", marker = "extra == 'qsa'" },
     { name = "sqlalchemy", specifier = ">=2.0.0" },
     { name = "statsmodels", marker = "extra == 'qsa'", specifier = ">=0.14.0" },
+    { name = "stripe", marker = "extra == 'qsa'", specifier = ">=5.0.0" },
     { name = "structlog", specifier = ">=25.4.0" },
     { name = "uvicorn", specifier = ">=0.35.0" },
     { name = "yfinance", marker = "extra == 'qsa'" },
@@ -5033,6 +5035,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a2/6d/90764092216fa560f6587f83bb70113a8ba510ba436c6476a2b47359057c/stevedore-5.7.0.tar.gz", hash = "sha256:31dd6fe6b3cbe921e21dcefabc9a5f1cf848cf538a1f27543721b8ca09948aa3", size = 516200, upload-time = "2026-02-20T13:27:06.765Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/69/06/36d260a695f383345ab5bbc3fd447249594ae2fa8dfd19c533d5ae23f46b/stevedore-5.7.0-py3-none-any.whl", hash = "sha256:fd25efbb32f1abb4c9e502f385f0018632baac11f9ee5d1b70f88cc5e22ad4ed", size = 54483, upload-time = "2026-02-20T13:27:05.561Z" },
+]
+
+[[package]]
+name = "stripe"
+version = "15.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/45/26/5d6f5f5beae6f1ff78213e2e6f4fbd431518dcd98733cdd39fb4ba0d01d3/stripe-15.1.0.tar.gz", hash = "sha256:24bd3b6bd0969a4841bd4d7681556a9e35e46c414a07c8590a225fbd5a878450", size = 1501673, upload-time = "2026-04-24T00:18:58.612Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d8/4e/fd9cb74ddf1e61fb6241e2f6799a81ef99bf6cf2e94f8812ee1cd5458e5d/stripe-15.1.0-py3-none-any.whl", hash = "sha256:bdfb556be08662a41833e6403607ebf12e0062cae4f9b93e2b89b6ba926d7c82", size = 2143199, upload-time = "2026-04-24T00:18:56.027Z" },
 ]
 
 [[package]]
